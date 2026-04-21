@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Cortex is an intelligent coding companion for fast-moving developers who want AI-assisted coding, debugging, and delivery workflows."
+    />
+    <meta name="theme-color" content="#05080f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cortex | Intelligent Coding Companion" />
+    <meta
+      property="og:description"
+      content="Build, debug, and deliver faster with Cortex, your intelligent AI coding companion."
+    />
+    <meta property="og:image" content="assets/icon/Cortex 512x512.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cortex | Intelligent Coding Companion" />
+    <meta
+      name="twitter:description"
+      content="Build, debug, and deliver faster with Cortex, your intelligent AI coding companion."
+    />
+    <meta name="twitter:image" content="assets/icon/Cortex 512x512.png" />
+    <title>Cortex | Intelligent Coding Companion</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/Cortex 32x32.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="assets/icon/Cortex 256x256.png" />
+    <link rel="manifest" href="assets/icon/manifest.json" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body class="page-home">
+    <div class="scroll-progress" data-scroll-progress aria-hidden="true"></div>
+    <canvas class="particle-canvas" data-particle-canvas aria-hidden="true"></canvas>
+    <div class="cursor-glow" data-cursor-glow aria-hidden="true"></div>
+
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="orb orb-one"></span>
+      <span class="orb orb-two"></span>
+      <span class="orb orb-three"></span>
+      <div class="grid-glow"></div>
+    </div>
+
+    <header class="site-header glass">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img src="assets/icon/Cortex 64x64.png" alt="Cortex icon" />
+        </span>
+        <span class="brand-text">Cortex</span>
+      </a>
+      <button class="menu-toggle" data-menu-toggle aria-label="Toggle navigation">Menu</button>
+      <nav class="site-nav" data-nav-menu>
+        <a href="#about">About</a>
+        <a href="#repo">GitHub</a>
+        <a href="#downloads">Downloads</a>
+        <a href="#web-future">Web Future</a>
+      </nav>
+      <div class="auth-slot" data-auth-slot></div>
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <div class="hero-content">
+          <p class="kicker">Ship Faster With Cortex</p>
+          <div class="hero-badges">
+            <span>AI Pair Programmer</span>
+            <span>Terminal Intelligence</span>
+            <span>Cross-Language Workflows</span>
+          </div>
+          <h1>
+            Build, debug, and deliver with an
+            <span
+              class="gradient-text"
+              data-rotating-text
+              data-words="advanced AI coding assistant|context-aware dev copilot|production-ready coding partner"
+              >advanced AI coding assistant</span
+            >
+          </h1>
+          <p class="hero-copy">
+            Cortex helps developers move from idea to production with smart coding support, command
+            execution guidance, and high-velocity workflows.
+          </p>
+          <div class="live-status">
+            <span class="dot"></span>
+            <span>Cortex services operational</span>
+          </div>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="signup.html">Create Account</a>
+            <a class="btn btn-ghost" href="#downloads">Download Cortex</a>
+          </div>
+        </div>
+        <div class="hero-panel glass" data-tilt>
+          <div class="terminal-header">
+            <span></span><span></span><span></span>
+            <p>cortex/terminal</p>
+          </div>
+          <div class="terminal-body">
+            <p><span class="prompt">$</span> cortex init --project AI-project</p>
+            <p><span class="prompt">$</span> cortex analyze --full-context</p>
+            <p><span class="prompt">$</span> cortex build --target production</p>
+            <p data-typing-line data-text="Clean builds, sharper fixes, and production-ready output in seconds."></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-ticker reveal">
+        <article class="glass stat-pill" data-tilt>
+          <span data-countup="2">0</span>
+          <small>Developers Supported</small>
+        </article>
+        <article class="glass stat-pill" data-tilt>
+          <span data-countup="230">0</span>
+          <small>Commands Automated</small>
+        </article>
+        <article class="glass stat-pill" data-tilt>
+          <span data-countup="99">0</span>
+          <small>Workflow Reliability %</small>
+        </article>
+      </section>
+
+      <section id="about" class="section reveal">
+        <div class="section-head">
+          <p class="kicker">About Cortex</p>
+          <h2>Made for serious builders and fast-moving teams</h2>
+        </div>
+        <div class="card-grid">
+          <article class="glass feature-card" data-tilt>
+            <h3>Deep Project Context</h3>
+            <p>Cortex understands your codebase structure so actions and suggestions stay relevant.</p>
+          </article>
+          <article class="glass feature-card" data-tilt>
+            <h3>Command + Code Flow</h3>
+            <p>Move from terminal commands to implementation without losing context or momentum.</p>
+          </article>
+          <article class="glass feature-card" data-tilt>
+            <h3>Focused on Delivery</h3>
+            <p>From setup to deployment, Cortex keeps quality and speed aligned.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="repo" class="section reveal">
+        <div class="section-head">
+          <p class="kicker">Public Repository</p>
+          <h2>Track the public Cortex code on GitHub</h2>
+        </div>
+        <article class="glass repo-card" data-repo-card data-tilt>
+          <div class="repo-main">
+            <h3 data-repo-name>Cortex Public Repo</h3>
+            <p data-repo-status>Loading repository info...</p>
+            <p class="repo-facts">
+              <span>Commits: <strong data-repo-commits>--</strong></span>
+              <span>Languages: <strong data-repo-language>--</strong></span>
+            </p>
+            <div class="repo-language-live" aria-live="polite">
+              <div
+                class="repo-language-line"
+                data-repo-language-line
+                role="img"
+                aria-label="Repository language distribution"
+              ></div>
+              <div class="repo-language-legend" data-repo-language-legend></div>
+            </div>
+            <div class="repo-contributors">
+              <p class="repo-contrib-title">Contributors</p>
+              <div class="repo-contrib-list" data-repo-contributors aria-live="polite"></div>
+            </div>
+            <a class="btn btn-ghost" data-repo-link href="https://github.com/raju-yadav-dev/cortex" target="_blank" rel="noreferrer">
+              Open GitHub Repo
+            </a>
+          </div>
+          <div class="repo-metrics">
+            <div>
+              <span data-repo-stars>--</span>
+              <small>Stars</small>
+            </div>
+            <div>
+              <span data-repo-forks>--</span>
+              <small>Forks</small>
+            </div>
+            <div>
+              <span data-repo-issues>--</span>
+              <small>Open Issues</small>
+            </div>
+            <div>
+              <span data-repo-pulls>--</span>
+              <small>Open PRs</small>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="downloads" class="section reveal">
+        <div class="section-head">
+          <p class="kicker">Installer Downloads</p>
+          <h2>Download and install Cortex locally</h2>
+        </div>
+        <div id="downloadSections" class="downloads-sections">
+          <article class="downloads-platform glass">
+            <h3>Loading download catalog...</h3>
+            <p>Please wait while platform installers are loaded.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="web-future" class="section reveal">
+        <div class="section-head">
+          <p class="kicker">Cortex On Web</p>
+          <h2>Future section for your upcoming web version</h2>
+        </div>
+        <article class="glass coming-soon" data-tilt>
+          <div>
+            <span class="pill">Coming Soon</span>
+            <h3>Cortex Web Runtime Placeholder</h3>
+            <p>
+              This section is reserved for future Cortex web app integration. Future update will come soon where use will be able to user cortex on their web browser without any installation. Stay tuned for updates!
+            </p>
+          </div>
+          <div class="future-blocks" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </article>
+      </section>
+
+      <section class="section reveal">
+        <article class="glass cta" data-tilt data-home-cta>
+          <h2 data-home-cta-title>Ready to start with Cortex?</h2>
+          <p data-home-cta-copy>Create your account, log in, and manage users through the admin dashboard.</p>
+          <div class="hero-actions" data-home-cta-actions>
+            <a class="btn btn-primary" href="login.html">Login</a>
+            <a class="btn btn-ghost" href="signup.html">Sign Up</a>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Copyright <span data-year></span> Cortex. All rights reserved.</p>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>

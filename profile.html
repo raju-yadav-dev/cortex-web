@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Manage your Cortex profile details." />
+    <meta name="theme-color" content="#05080f" />
+    <title>Profile | Cortex</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/Cortex 32x32.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="assets/icon/Cortex 256x256.png" />
+    <link rel="manifest" href="assets/icon/manifest.json" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body class="page-profile" data-page="profile">
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="orb orb-one"></span>
+      <span class="orb orb-two"></span>
+      <span class="orb orb-three"></span>
+    </div>
+
+    <header class="site-header glass">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img src="assets/icon/Cortex 64x64.png" alt="Cortex icon" />
+        </span>
+        <span class="brand-text">Cortex</span>
+      </a>
+      <button class="menu-toggle" data-menu-toggle aria-label="Toggle navigation">Menu</button>
+      <nav class="site-nav" data-nav-menu>
+        <a href="index.html#about">About</a>
+        <a href="index.html#downloads">Downloads</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <div class="auth-slot" data-auth-slot></div>
+    </header>
+
+    <main class="profile-layout">
+      <section class="glass profile-summary reveal">
+        <div class="avatar" data-avatar>CU</div>
+        <h1 data-profile-name>Cortex User</h1>
+        <p data-profile-email>user@cortex.app</p>
+        <p class="pill" data-profile-role>Role: user</p>
+      </section>
+
+      <section class="glass profile-form-wrap reveal">
+        <h2>Edit Profile</h2>
+        <form id="profileForm" class="form-stack">
+          <label>
+            Full Name
+            <input type="text" name="name" required />
+          </label>
+          <label>
+            Username
+            <input type="text" name="username" required />
+          </label>
+          <label>
+            Bio
+            <textarea name="bio" rows="5" placeholder="Tell others about your coding style"></textarea>
+          </label>
+          <button class="btn btn-primary" type="submit">Save Profile</button>
+        </form>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Copyright <span data-year></span> Cortex.</p>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/profile.js"></script>
+  </body>
+</html>

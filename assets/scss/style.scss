@@ -1,0 +1,151 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+$bg0: #05080f;
+$bg1: #0d1324;
+$bg2: #1a2142;
+$primary: #2bf5c7;
+$secondary: #67a2ff;
+$text0: #f8fbff;
+$text1: #b8c7de;
+$radius-lg: 22px;
+$radius-md: 14px;
+$radius-sm: 10px;
+
+@mixin glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: $radius-lg;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: $text0;
+  background:
+    radial-gradient(circle at 12% 18%, #1e2d66 0%, rgba(30, 45, 102, 0) 38%),
+    radial-gradient(circle at 88% 3%, #224745 0%, rgba(34, 71, 69, 0) 40%),
+    linear-gradient(145deg, $bg0, $bg1 46%, $bg2);
+}
+
+.glass {
+  @include glass;
+}
+
+.btn {
+  border: none;
+  border-radius: $radius-sm;
+  font: inherit;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  &.btn-primary {
+    color: #042833;
+    background: linear-gradient(120deg, $primary, #6de4ff);
+  }
+
+  &.btn-ghost {
+    color: $text0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  &.btn-sm {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+}
+
+.site-header {
+  @include glass;
+  width: min(1160px, 92vw);
+  margin: 20px auto 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  .brand {
+    margin-right: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 6px;
+
+    a {
+      color: $text1;
+      border-radius: 999px;
+      padding: 8px 12px;
+      transition: 0.2s ease;
+
+      &:hover {
+        color: $text0;
+        background: rgba(255, 255, 255, 0.09);
+      }
+    }
+  }
+}
+
+.hero {
+  width: min(1160px, 92vw);
+  margin: 40px auto 0;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+
+  h1 {
+    font-family: "Sora", sans-serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+  }
+}
+
+.form-stack {
+  display: grid;
+  gap: 12px;
+
+  label {
+    display: grid;
+    gap: 8px;
+    color: $text1;
+    font-size: 0.92rem;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    border-radius: $radius-sm;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: $text0;
+    font: inherit;
+    padding: 11px 12px;
+  }
+}
+
+.admin-shell {
+  width: min(1260px, 95vw);
+  margin: 14px auto;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .hero,
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Securely log in to your Cortex account." />
+    <meta name="theme-color" content="#05080f" />
+    <title>Login | Cortex</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/Cortex 32x32.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="assets/icon/Cortex 256x256.png" />
+    <link rel="manifest" href="assets/icon/manifest.json" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body class="page-auth" data-page="login">
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="orb orb-one"></span>
+      <span class="orb orb-two"></span>
+      <span class="orb orb-three"></span>
+    </div>
+
+    <header class="site-header glass">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img src="assets/icon/Cortex 64x64.png" alt="Cortex icon" />
+        </span>
+        <span class="brand-text">Cortex</span>
+      </a>
+      <button class="menu-toggle" data-menu-toggle aria-label="Toggle navigation">Menu</button>
+      <nav class="site-nav" data-nav-menu>
+        <a href="index.html#about">About</a>
+        <a href="index.html#downloads">Downloads</a>
+        <a href="index.html#web-future">Web Future</a>
+      </nav>
+      <div class="auth-slot" data-auth-slot></div>
+    </header>
+
+    <main class="auth-layout">
+      <section class="auth-intro reveal">
+        <p class="kicker">Welcome Back</p>
+        <h1>Login to your Cortex account</h1>
+        <p>Access your profile, installer links, and admin tools from one dashboard.</p>
+      </section>
+
+      <section class="auth-card glass reveal">
+        <h2>Login</h2>
+        <form id="loginForm" class="form-stack">
+          <label>
+            Email or Username
+            <input type="text" name="identifier" placeholder="example@example.com or username" required />
+          </label>
+          <label>
+            Password
+            <div class="password-input-row">
+              <input id="loginPassword" type="password" name="password" placeholder="Enter your password" required />
+              <button class="password-visibility-btn" type="button" data-password-toggle data-target="loginPassword" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M1.5 12s3.5-6 10.5-6 10.5 6 10.5 6-3.5 6-10.5 6S1.5 12 1.5 12Z" />
+                  <circle cx="12" cy="12" r="3.5" />
+                  <path class="eye-off" d="M4 20 20 4" />
+                </svg>
+              </button>
+            </div>
+          </label>
+          <button class="btn btn-primary" type="submit">Login</button>
+        </form>
+        <div class="form-foot">
+          <a href="forgot-password.html">Forgot password?</a>
+          <a href="signup.html">Create new account</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Copyright <span data-year></span> Cortex.</p>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/auth.js"></script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Create your Cortex account and get started quickly." />
+    <meta name="theme-color" content="#05080f" />
+    <title>Sign Up | Cortex</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/Cortex 32x32.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="assets/icon/Cortex 256x256.png" />
+    <link rel="manifest" href="assets/icon/manifest.json" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body class="page-auth" data-page="signup">
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="orb orb-one"></span>
+      <span class="orb orb-two"></span>
+      <span class="orb orb-three"></span>
+    </div>
+
+    <header class="site-header glass">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img src="assets/icon/Cortex 64x64.png" alt="Cortex icon" />
+        </span>
+        <span class="brand-text">Cortex</span>
+      </a>
+      <button class="menu-toggle" data-menu-toggle aria-label="Toggle navigation">Menu</button>
+      <nav class="site-nav" data-nav-menu>
+        <a href="index.html#about">About</a>
+        <a href="index.html#repo">GitHub</a>
+        <a href="index.html#downloads">Downloads</a>
+      </nav>
+      <div class="auth-slot" data-auth-slot></div>
+    </header>
+
+    <main class="auth-layout">
+      <section class="auth-intro reveal">
+        <p class="kicker">Join Cortex</p>
+        <h1>Create your account</h1>
+        <p>Get started in seconds and unlock your complete Cortex experience.</p>
+      </section>
+
+      <section class="auth-card glass reveal">
+        <h2>Sign Up</h2>
+        <form id="signupForm" class="form-stack">
+          <label>
+            Full Name
+            <input type="text" name="name" placeholder="Your full name" required />
+          </label>
+          <label>
+            Username
+            <input type="text" name="username" placeholder="username" required />
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" placeholder="you@example.com" required />
+          </label>
+          <label>
+            Password
+            <div class="password-input-row">
+              <input id="signupPassword" type="password" name="password" placeholder="Minimum 8 characters" required />
+              <button class="password-visibility-btn" type="button" data-password-toggle data-target="signupPassword" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M1.5 12s3.5-6 10.5-6 10.5 6 10.5 6-3.5 6-10.5 6S1.5 12 1.5 12Z" />
+                  <circle cx="12" cy="12" r="3.5" />
+                  <path class="eye-off" d="M4 20 20 4" />
+                </svg>
+              </button>
+            </div>
+          </label>
+          <label>
+            Confirm Password
+            <div class="password-input-row">
+              <input id="signupConfirmPassword" type="password" name="confirmPassword" placeholder="Confirm password" required />
+              <button class="password-visibility-btn" type="button" data-password-toggle data-target="signupConfirmPassword" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M1.5 12s3.5-6 10.5-6 10.5 6 10.5 6-3.5 6-10.5 6S1.5 12 1.5 12Z" />
+                  <circle cx="12" cy="12" r="3.5" />
+                  <path class="eye-off" d="M4 20 20 4" />
+                </svg>
+              </button>
+            </div>
+          </label>
+          <button class="btn btn-primary" type="submit">Create Account</button>
+        </form>
+        <div class="form-foot">
+          <a href="login.html">Already have an account? Login</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Copyright <span data-year></span> Cortex.</p>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/auth.js"></script>
+  </body>
+</html>
