@@ -1,13 +1,13 @@
 # Cortex Web
 
-This is the deploy-ready version of the `cortex-site` frontend. It keeps the same static pages and assets, but replaces the old local Node/MySQL backend with serverless functions that use Supabase.
+This is the deploy-ready version of the `cortex-site` frontend. It keeps the same static pages and assets, and the login/signup pages connect directly to Supabase.
 
 ## Setup
 
 1. Create a Supabase project.
 2. Run `supabase-schema.sql` in the Supabase SQL editor.
-3. Copy `.env.example` to `.env.local` for local Vercel development, or add the same variables in Vercel/Netlify.
-4. Deploy this folder to Vercel or Netlify.
+3. Add your Supabase URL and anon key in `assets/js/auth.js`.
+4. Deploy this folder to your static hosting provider.
 5. Sign up once, then promote your account:
 
 ```sql

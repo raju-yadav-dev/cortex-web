@@ -1,72 +1,68 @@
+const SUPABASE_URL = "https://tfdszotngmkrixzxhxgt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_qKd2iPnUnFJDW1bDBU8M1A_7wzR7Iwb";
+const USERDATA_TABLE = "userdata";
+const ADMINDATA_TABLE = "admindata";
+
+const supabaseClient = window.supabase?.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
 let allUsers = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const user = await resolveAdminUserNoRedirect();
-  if (user && user.role === "admin") {
-    await loadUsers();
-  } else {
-    setAdminLockedState("Admin panel is locked. Login as admin to access users.");
+  const user = window.CortexWeb?.getUser?.();
+
+  if (!user) {
+    window.location.href = "login.html";
+    return;
   }
+
+  if (user.role !== "admin" || user.accountType !== "admin") {
+    window.CortexWeb.showToast("Admin access required.", "error");
+    window.location.href = "index.html";
+    return;
+  }
+
   bindSearch();
+  await loadUsers();
 });
-
-async function resolveAdminUserNoRedirect() {
-  const cached = window.CortexWeb.getUser();
-  if (cached && cached.role === "admin") return cached;
-  if (!window.CortexWeb.getToken()) return null;
-
-  try {
-    const refreshed = await window.CortexWeb.refreshUser();
-    return refreshed && refreshed.role === "admin" ? refreshed : null;
-  } catch (_error) {
-    return null;
-  }
-}
-
-function setAdminLockedState(message) {
-  const totalNode = document.getElementById("statTotalUsers");
-  const adminNode = document.getElementById("statAdminUsers");
-  const userNode = document.getElementById("statNormalUsers");
-  if (totalNode) totalNode.textContent = "--";
-  if (adminNode) adminNode.textContent = "--";
-  if (userNode) userNode.textContent = "--";
-
-  const body = document.getElementById("userTableBody");
-  if (body) {
-    body.innerHTML = `
-      <tr>
-        <td colspan="6">${escapeHtml(message)}</td>
-      </tr>
-    `;
-  }
-
-  const search = document.getElementById("userSearch");
-  if (search) search.disabled = true;
-}
 
 async function loadUsers() {
   try {
-    const payload = await window.CortexWeb.api("/api/admin/users", { method: "GET" });
-    allUsers = payload?.users || [];
-    renderStats(allUsers);
+    ensureSupabaseReady();
+
+    const userResult = await supabaseClient
+      .from(USERDATA_TABLE)
+      .select("id, name, username, email, created_at")
+      .order("created_at", { ascending: false });
+
+    if (userResult.error) {
+      throw userResult.error;
+    }
+
+    const adminResult = await supabaseClient
+      .from(ADMINDATA_TABLE)
+      .select("admin_id", { count: "exact" });
+
+    if (adminResult.error) {
+      throw adminResult.error;
+    }
+
+    allUsers = userResult.data || [];
+    renderStats(allUsers, adminResult.count || 0);
     renderTable(allUsers);
   } catch (error) {
-    window.CortexWeb.showToast(error.message, "error");
-    setAdminLockedState(error.message);
+    console.log("Admin users load error:", error);
+    window.CortexWeb.showToast(error.message || "Could not load users.", "error");
+    setAdminLockedState(error.message || "Could not load users.");
   }
 }
 
-function renderStats(users) {
-  const total = users.length;
-  const admins = users.filter((item) => item.role === "admin").length;
-  const members = total - admins;
-
-  const totalNode = document.getElementById("statTotalUsers");
-  const adminNode = document.getElementById("statAdminUsers");
-  const userNode = document.getElementById("statNormalUsers");
-  if (totalNode) totalNode.textContent = String(total);
-  if (adminNode) adminNode.textContent = String(admins);
-  if (userNode) userNode.textContent = String(members);
+function renderStats(users, adminCount) {
+  setText("statTotalUsers", users.length);
+  setText("statAdminUsers", adminCount);
+  setText("statNormalUsers", users.length);
 }
 
 function renderTable(users) {
@@ -86,61 +82,71 @@ function renderTable(users) {
     .map(
       (user) => `
       <tr>
+        <td>${escapeHtml(shortId(user.id))}</td>
         <td>${escapeHtml(user.name || "--")}</td>
         <td>@${escapeHtml(user.username || "--")}</td>
         <td>${escapeHtml(user.email || "--")}</td>
-        <td>
-          <select data-role-select data-user-id="${user.id}">
-            <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
-            <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
-          </select>
-        </td>
-        <td>${window.CortexWeb.formatDate(user.createdAt)}</td>
-        <td>${window.CortexWeb.formatDate(user.lastLoginAt)}</td>
+        <td><span class="audit-status audit-status-success">user</span></td>
+        <td>${window.CortexWeb.formatDate(user.created_at)}</td>
       </tr>
     `
     )
     .join("");
-
-  body.querySelectorAll("[data-role-select]").forEach((select) => {
-    select.addEventListener("change", async (event) => {
-      const target = event.currentTarget;
-      const userId = target.getAttribute("data-user-id");
-      const role = target.value;
-      try {
-        await window.CortexWeb.api(`/api/admin/users/${encodeURIComponent(userId)}`, {
-          method: "PATCH",
-          body: { role }
-        });
-        const localUser = allUsers.find((item) => item.id === userId);
-        if (localUser) {
-          localUser.role = role;
-          renderStats(allUsers);
-        }
-        window.CortexWeb.showToast(`Role updated to ${role}.`, "success");
-      } catch (error) {
-        window.CortexWeb.showToast(error.message, "error");
-        await loadUsers();
-      }
-    });
-  });
 }
 
 function bindSearch() {
   const search = document.getElementById("userSearch");
   if (!search) return;
+
   search.addEventListener("input", () => {
     const query = String(search.value || "").trim().toLowerCase();
     if (!query) {
       renderTable(allUsers);
       return;
     }
+
     const filtered = allUsers.filter((item) => {
-      const haystack = [item.name, item.username, item.email, item.role].join(" ").toLowerCase();
+      const haystack = [item.id, item.name, item.username, item.email, "user"]
+        .join(" ")
+        .toLowerCase();
       return haystack.includes(query);
     });
+
     renderTable(filtered);
   });
+}
+
+function setAdminLockedState(message) {
+  setText("statTotalUsers", "--");
+  setText("statAdminUsers", "--");
+  setText("statNormalUsers", "--");
+
+  const body = document.getElementById("userTableBody");
+  if (body) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="6">${escapeHtml(message)}</td>
+      </tr>
+    `;
+  }
+}
+
+function ensureSupabaseReady() {
+  if (!supabaseClient) {
+    throw new Error("Supabase library is not loaded.");
+  }
+}
+
+function setText(id, value) {
+  const node = document.getElementById(id);
+  if (node) {
+    node.textContent = String(value);
+  }
+}
+
+function shortId(id) {
+  const value = String(id || "--");
+  return value.length > 12 ? `${value.slice(0, 8)}...` : value;
 }
 
 function escapeHtml(value) {

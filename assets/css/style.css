@@ -1394,24 +1394,29 @@ body[data-theme="light"] .gradient-text-caret {
 
 .toast-stack {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 60;
+  top: 18px;
+  right: 18px;
+  z-index: 100;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  width: min(390px, calc(100vw - 32px));
 }
 
 .toast {
-  min-width: 220px;
-  max-width: min(380px, 80vw);
-  border-radius: 10px;
-  padding: 10px 12px;
+  width: 100%;
+  min-height: 58px;
+  border-radius: 8px;
+  padding: 14px 16px 14px 18px;
   color: #f3fbff;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(7, 14, 29, 0.95);
+  background: rgba(8, 15, 32, 0.96);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(16px);
+  font-weight: 700;
+  line-height: 1.45;
   opacity: 0;
-  transform: translateY(8px);
-  transition: 0.2s ease;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .toast.show {
@@ -1420,15 +1425,15 @@ body[data-theme="light"] .gradient-text-caret {
 }
 
 .toast-success {
-  border-left: 4px solid var(--success);
+  border-left: 5px solid var(--success);
 }
 
 .toast-error {
-  border-left: 4px solid var(--danger);
+  border-left: 5px solid var(--danger);
 }
 
 .toast-info {
-  border-left: 4px solid var(--secondary);
+  border-left: 5px solid var(--secondary);
 }
 
 .reveal {

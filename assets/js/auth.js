@@ -1,3 +1,13 @@
+const SUPABASE_URL = "https://tfdszotngmkrixzxhxgt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_qKd2iPnUnFJDW1bDBU8M1A_7wzR7Iwb";
+const USERDATA_TABLE = "userdata";
+const ADMINDATA_TABLE = "admindata";
+
+const supabaseClient = window.supabase?.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
 document.addEventListener("DOMContentLoaded", () => {
   bindPasswordVisibilityButtons();
 
@@ -34,7 +44,6 @@ function bindPasswordVisibilityButtons() {
 function setupLogin() {
   const form = document.getElementById("loginForm");
   if (!form) return;
-  const loginRoute = window.CortexWeb?.routes?.login || "/api/auth/login";
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -46,7 +55,7 @@ function setupLogin() {
     const identifier = String(data.get("identifier") || "").trim();
     const password = String(data.get("password") || "");
     if (!identifier || !password) {
-      window.CortexWeb.showToast("Email/username and password are required.", "error");
+      showMessage("Email/username and password are required.", "error");
       return;
     }
 
@@ -58,15 +67,22 @@ function setupLogin() {
     }
 
     try {
-      const payload = await window.CortexWeb.api(loginRoute, {
-        method: "POST",
-        body: { identifier, password }
-      });
-      window.CortexWeb.setSession(payload.token, payload.user);
-      window.CortexWeb.showToast("Login successful.", "success");
-      window.location.href = payload.user.role === "admin" ? "admin.html" : "profile.html";
+      ensureSupabaseReady();
+
+      const user = await getLoginAccount(identifier);
+
+      if (!user || user.password !== password) {
+        throw new Error("Invalid login ID or password.");
+      }
+
+      const safeUser = removePassword(user);
+      localStorage.setItem("cortex_user", JSON.stringify(safeUser));
+      localStorage.setItem("cortex_token", "supabase-table-login");
+      showMessage("Login successful.", "success");
+      window.location.href = safeUser.accountType === "admin" ? "admin.html" : "index.html";
     } catch (error) {
-      window.CortexWeb.showToast(error.message, "error");
+      console.log("Login error:", error);
+      showMessage(error.message || "Login failed. Please try again.", "error");
     } finally {
       isSubmitting = false;
       if (submitButton) {
@@ -80,7 +96,6 @@ function setupLogin() {
 function setupSignup() {
   const form = document.getElementById("signupForm");
   if (!form) return;
-  const signupRoute = window.CortexWeb?.routes?.signup || "/api/auth/signup";
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -97,7 +112,15 @@ function setupSignup() {
       confirmPassword: String(data.get("confirmPassword") || "")
     };
     if (!payload.name || !payload.username || !payload.email) {
-      window.CortexWeb.showToast("Name, username, and email are required.", "error");
+      showMessage("Name, username, and email are required.", "error");
+      return;
+    }
+    if (!payload.password || !payload.confirmPassword) {
+      showMessage("Password and confirm password are required.", "error");
+      return;
+    }
+    if (payload.password !== payload.confirmPassword) {
+      showMessage("Passwords do not match.", "error");
       return;
     }
 
@@ -109,15 +132,29 @@ function setupSignup() {
     }
 
     try {
-      const result = await window.CortexWeb.api(signupRoute, {
-        method: "POST",
-        body: payload
-      });
-      window.CortexWeb.setSession(result.token, result.user);
-      window.CortexWeb.showToast("Account created.", "success");
-      window.location.href = "profile.html";
+      ensureSupabaseReady();
+
+      const { error } = await supabaseClient.from(USERDATA_TABLE).insert([
+        {
+          name: payload.name,
+          username: payload.username,
+          email: payload.email,
+          password: payload.password
+        }
+      ]);
+
+      if (error) {
+        throw error;
+      }
+
+      showMessage("Account created successfully. Please login.", "success");
+      form.reset();
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 800);
     } catch (error) {
-      window.CortexWeb.showToast(error.message, "error");
+      console.log("Signup error:", error);
+      showMessage(error.message || "Signup failed. Please try again.", "error");
     } finally {
       isSubmitting = false;
       if (submitButton) {
@@ -126,6 +163,96 @@ function setupSignup() {
       }
     }
   });
+}
+
+function ensureSupabaseReady() {
+  if (!supabaseClient) {
+    throw new Error("Supabase library is not loaded.");
+  }
+  if (SUPABASE_URL === "SUPABASE_URL" || SUPABASE_ANON_KEY === "SUPABASE_ANON_KEY") {
+    throw new Error("Please add your Supabase URL and anon key in assets/js/auth.js.");
+  }
+}
+
+async function getLoginAccount(identifier) {
+  const admin = await getAdminById(identifier);
+  if (admin) {
+    return admin;
+  }
+  return getUserByIdentifier(identifier);
+}
+
+async function getUserByIdentifier(identifier) {
+  const user = await findRecordByIdentifier(USERDATA_TABLE, identifier);
+  if (user) {
+    return { ...user, role: "user", accountType: "user" };
+  }
+
+  return null;
+}
+
+async function getAdminById(adminId) {
+  const adminResult = await supabaseClient
+    .from(ADMINDATA_TABLE)
+    .select("*")
+    .eq("admin_id", adminId)
+    .maybeSingle();
+
+  if (adminResult.error) {
+    throw adminResult.error;
+  }
+  if (!adminResult.data) {
+    return null;
+  }
+
+  return { ...adminResult.data, role: "admin", accountType: "admin" };
+}
+
+async function findRecordByIdentifier(tableName, identifier) {
+  const emailResult = await supabaseClient
+    .from(tableName)
+    .select("*")
+    .eq("email", identifier)
+    .maybeSingle();
+
+  if (emailResult.error) {
+    throw emailResult.error;
+  }
+  if (emailResult.data) {
+    return emailResult.data;
+  }
+
+  const usernameResult = await supabaseClient
+    .from(tableName)
+    .select("*")
+    .eq("username", identifier)
+    .maybeSingle();
+
+  if (usernameResult.error) {
+    throw usernameResult.error;
+  }
+
+  return usernameResult.data;
+}
+
+function removePassword(user) {
+  const safeUser = { ...user };
+  delete safeUser.password;
+  return safeUser;
+}
+
+function showMessage(message, type = "info") {
+  console.log(message);
+  if (window.CortexWeb?.showToast) {
+    window.CortexWeb.showToast(message, type);
+    return;
+  }
+
+  const messageBox = document.createElement("div");
+  messageBox.className = `toast toast-${type} show`;
+  messageBox.textContent = message;
+  document.body.appendChild(messageBox);
+  setTimeout(() => messageBox.remove(), 2800);
 }
 
 function setupForgotPassword() {
