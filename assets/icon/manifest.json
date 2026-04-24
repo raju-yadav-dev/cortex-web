@@ -1,21 +1,22 @@
 {
-  "name": "Cortex",
-  "short_name": "Cortex",
-  "description": "Cortex intelligent coding companion",
+  "name": "Altarix",
+  "short_name": "Altarix",
+  "description": "Altarix intelligent coding companion",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#05080f",
   "theme_color": "#05080f",
   "icons": [
     {
-      "src": "/assets/icon/Cortex 256x256.png",
+      "src": "/assets/icon/Altarix 256x256.png",
       "sizes": "256x256",
       "type": "image/png"
     },
     {
-      "src": "/assets/icon/Cortex 512x512.png",
+      "src": "/assets/icon/Altarix 512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
   ]
 }
+

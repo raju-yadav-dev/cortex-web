@@ -69,15 +69,15 @@ function setupLogin() {
     try {
       ensureSupabaseReady();
 
-      const user = await getLoginAccount(identifier);
+      const user = await getLoginAccount(identifier, password);
 
-      if (!user || user.password !== password) {
+      if (!user) {
         throw new Error("Invalid login ID or password.");
       }
 
       const safeUser = removePassword(user);
-      localStorage.setItem("cortex_user", JSON.stringify(safeUser));
-      localStorage.setItem("cortex_token", "supabase-table-login");
+      localStorage.setItem("Altarix_user", JSON.stringify(safeUser));
+      localStorage.setItem("Altarix_token", "supabase-table-login");
       showMessage("Login successful.", "success");
       window.location.href = safeUser.accountType === "admin" ? "admin.html" : "index.html";
     } catch (error) {
@@ -174,12 +174,18 @@ function ensureSupabaseReady() {
   }
 }
 
-async function getLoginAccount(identifier) {
+async function getLoginAccount(identifier, password) {
   const admin = await getAdminById(identifier);
-  if (admin) {
+  if (admin && admin.password === password) {
     return admin;
   }
-  return getUserByIdentifier(identifier);
+
+  const user = await getUserByIdentifier(identifier);
+  if (user && user.password === password) {
+    return user;
+  }
+
+  return null;
 }
 
 async function getUserByIdentifier(identifier) {
@@ -243,8 +249,8 @@ function removePassword(user) {
 
 function showMessage(message, type = "info") {
   console.log(message);
-  if (window.CortexWeb?.showToast) {
-    window.CortexWeb.showToast(message, type);
+  if (window.AltarixWeb?.showToast) {
+    window.AltarixWeb.showToast(message, type);
     return;
   }
 
@@ -258,7 +264,7 @@ function showMessage(message, type = "info") {
 function setupForgotPassword() {
   const form = document.getElementById("forgotForm");
   if (!form) return;
-  const forgotRoute = window.CortexWeb?.routes?.forgotPassword || "/api/auth/forgot-password";
+  const forgotRoute = window.AltarixWeb?.routes?.forgotPassword || "/api/auth/forgot-password";
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -273,7 +279,7 @@ function setupForgotPassword() {
       confirmPassword: String(data.get("confirmPassword") || "")
     };
     if (!payload.email || !payload.newPassword || !payload.confirmPassword) {
-      window.CortexWeb.showToast("Please fill all required fields.", "error");
+      window.AltarixWeb.showToast("Please fill all required fields.", "error");
       return;
     }
 
@@ -285,17 +291,17 @@ function setupForgotPassword() {
     }
 
     try {
-      await window.CortexWeb.api(forgotRoute, {
+      await window.AltarixWeb.api(forgotRoute, {
         method: "POST",
         body: payload
       });
-      window.CortexWeb.showToast("Password updated. Please login.", "success");
+      window.AltarixWeb.showToast("Password updated. Please login.", "success");
       form.reset();
       setTimeout(() => {
         window.location.href = "login.html";
       }, 600);
     } catch (error) {
-      window.CortexWeb.showToast(error.message, "error");
+      window.AltarixWeb.showToast(error.message, "error");
     } finally {
       isSubmitting = false;
       if (submitButton) {
@@ -305,3 +311,4 @@ function setupForgotPassword() {
     }
   });
 }
+

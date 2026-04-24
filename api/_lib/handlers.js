@@ -241,8 +241,8 @@ async function handleAdminUsers(req, res, userId = "") {
 async function handleMeta(req, res) {
   if (req.method !== "GET") return methodNotAllowed(res);
   return sendJson(res, 200, {
-    name: process.env.SITE_NAME || "Cortex",
-    repoUrl: process.env.PUBLIC_REPO_URL || "https://github.com/raju-yadav-dev/cortex"
+    name: process.env.SITE_NAME || "Altarix",
+    repoUrl: process.env.PUBLIC_REPO_URL || "https://github.com/raju-yadav-dev/Altarix"
   });
 }
 
@@ -290,3 +290,4 @@ export async function handleApiRequest(req, res, forcedPath = "") {
     return sendJson(res, 500, { error: error.message || "Unexpected server error." });
   }
 }
+

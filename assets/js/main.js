@@ -12,7 +12,7 @@ async function loadRepositoryCard() {
   const card = document.querySelector("[data-repo-card]");
   if (!card) return;
 
-  const fallbackRepoUrl = "https://github.com/raju-yadav-dev/cortex";
+  const fallbackRepoUrl = "https://github.com/raju-yadav-dev/Altarix";
   const repoName = card.querySelector("[data-repo-name]");
   const repoStatus = card.querySelector("[data-repo-status]");
   const repoLink = card.querySelector("[data-repo-link]");
@@ -29,8 +29,8 @@ async function loadRepositoryCard() {
   try {
     let url = fallbackRepoUrl;
     try {
-      if (window.CortexWeb && typeof window.CortexWeb.api === "function") {
-        const meta = await window.CortexWeb.api("/api/meta");
+      if (window.AltarixWeb && typeof window.AltarixWeb.api === "function") {
+        const meta = await window.AltarixWeb.api("/api/meta");
         if (meta?.repoUrl) {
           url = meta.repoUrl;
         }
@@ -261,7 +261,7 @@ async function loadRepositoryCard() {
     if (repoResult.status === "fulfilled") {
       stars.textContent = String(repoResult.value.stargazers_count ?? "--");
       forks.textContent = String(repoResult.value.forks_count ?? "--");
-      repoStatus.textContent = repoResult.value.description || "Public Cortex repository.";
+      repoStatus.textContent = repoResult.value.description || "Public Altarix repository.";
       if (languages && repoResult.value.language) {
         languages.textContent = String(repoResult.value.language);
       }
@@ -341,17 +341,17 @@ async function loadDownloads() {
         (file) => {
           const sizeText =
             Number.isFinite(Number(file.size)) && Number(file.size) > 0
-              ? window.CortexWeb.formatBytes(Number(file.size))
+              ? window.AltarixWeb.formatBytes(Number(file.size))
               : "--";
           const updatedText = file.updatedAt
-            ? window.CortexWeb.formatDate(file.updatedAt)
+            ? window.AltarixWeb.formatDate(file.updatedAt)
             : "--";
           return `
         <tr>
           <td>${escapeHtml(file.name)}</td>
           <td>${escapeHtml(formatType(file.name))}</td>
           <td data-download-size="${escapeHtml(file.name)}">${escapeHtml(sizeText)}</td>
-          <td data-download-updated="${escapeHtml(file.name)}">${escapeHtml(updatedText)}</td>
+          <td class="col-updated" data-download-updated="${escapeHtml(file.name)}">${escapeHtml(updatedText)}</td>
           <td><a class="btn btn-primary btn-sm" href="${escapeHtml(normalizeDownloadUrl(file.downloadUrl))}">Download</a></td>
         </tr>
       `;
@@ -498,7 +498,7 @@ async function loadDownloads() {
                     <th>File</th>
                     <th>Type</th>
                     <th>Size</th>
-                    <th>Updated</th>
+                    <th class="col-updated">Updated</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -533,7 +533,7 @@ async function loadDownloads() {
                     <th>File</th>
                     <th>Type</th>
                     <th>Size</th>
-                    <th>Updated</th>
+                    <th class="col-updated">Updated</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -586,11 +586,11 @@ async function loadDownloads() {
             );
 
             if (sizeNode && Number.isFinite(contentLength) && contentLength > 0) {
-              sizeNode.textContent = window.CortexWeb.formatBytes(contentLength);
+              sizeNode.textContent = window.AltarixWeb.formatBytes(contentLength);
             }
             if (updatedNode && lastModified) {
               const iso = new Date(lastModified).toISOString();
-              updatedNode.textContent = window.CortexWeb.formatDate(iso);
+              updatedNode.textContent = window.AltarixWeb.formatDate(iso);
             }
             break;
           } catch (_error) {
@@ -603,17 +603,17 @@ async function loadDownloads() {
 
   const buildFallbackFiles = async () => {
     const fallbackNames = [
-      "Cortex-1.5.1-installer.exe",
-      "Cortex-1.5.1-installer.msi",
-      "Cortex-1.5.1.exe",
-      "Cortex-1.5.1.msi",
-      "Cortex-1.2.1-installer.exe",
-      "Cortex-1.2.1-installer.msi",
-      "Cortex-1.0.msi",
-      "Cortex-1.5.1.deb",
-      "Cortex-1.5.1.rpm",
-      "Cortex-1.5.1.pkg",
-      "Cortex-1.5.1.dmg"
+      "Altarix-1.5.1-installer.exe",
+      "Altarix-1.5.1-installer.msi",
+      "Altarix-1.5.1.exe",
+      "Altarix-1.5.1.msi",
+      "Altarix-1.2.1-installer.exe",
+      "Altarix-1.2.1-installer.msi",
+      "Altarix-1.0.msi",
+      "Altarix-1.5.1.deb",
+      "Altarix-1.5.1.rpm",
+      "Altarix-1.5.1.pkg",
+      "Altarix-1.5.1.dmg"
     ];
     const prefixes = ["downloads/"];
     const discovered = [];
@@ -669,11 +669,11 @@ async function loadDownloads() {
     let data = null;
     let apiError = null;
     try {
-      data = await window.CortexWeb.api("/api/downloads");
+      data = await window.AltarixWeb.api("/api/downloads");
     } catch (error) {
       if (error?.status === 404) {
         try {
-          data = await window.CortexWeb.api("api/downloads");
+          data = await window.AltarixWeb.api("api/downloads");
         } catch (nestedError) {
           apiError = nestedError;
         }
@@ -779,16 +779,21 @@ function initRotatingText() {
   const heading = node.closest("h1");
   if (heading) {
     let maxHeight = 0;
+    let maxWidth = 0;
+    const headingWidth = heading.getBoundingClientRect().width;
     words.forEach((word) => {
       textNode.textContent = word;
+      const bounds = textNode.getBoundingClientRect();
       maxHeight = Math.max(maxHeight, heading.getBoundingClientRect().height);
+      maxWidth = Math.max(maxWidth, bounds.width);
     });
     if (maxHeight > 0) {
       heading.style.minHeight = `${Math.ceil(maxHeight)}px`;
     }
+    if (maxWidth > 0 && headingWidth > 0) {
+      node.style.minWidth = `${Math.ceil(Math.min(maxWidth, headingWidth))}px`;
+    }
   }
-
-  node.style.removeProperty("min-width");
   node.classList.add("is-typing");
 
   let wordIndex = 0;
@@ -828,6 +833,26 @@ function initRotatingText() {
 
   textNode.textContent = "";
   setTimeout(tick, 300);
+
+  window.addEventListener("resize", () => {
+    if (!heading) return;
+    let maxHeight = 0;
+    let maxWidth = 0;
+    const headingWidth = heading.getBoundingClientRect().width;
+    words.forEach((word) => {
+      textNode.textContent = word;
+      const bounds = textNode.getBoundingClientRect();
+      maxHeight = Math.max(maxHeight, heading.getBoundingClientRect().height);
+      maxWidth = Math.max(maxWidth, bounds.width);
+    });
+    if (maxHeight > 0) {
+      heading.style.minHeight = `${Math.ceil(maxHeight)}px`;
+    }
+    if (maxWidth > 0 && headingWidth > 0) {
+      node.style.minWidth = `${Math.ceil(Math.min(maxWidth, headingWidth))}px`;
+    }
+    textNode.textContent = "";
+  });
 }
 
 function initCounterCards() {
@@ -1004,3 +1029,4 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+

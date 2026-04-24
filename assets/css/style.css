@@ -212,6 +212,12 @@ img {
   margin-right: auto;
   font-family: "Sora", sans-serif;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.brand-text {
+  display: inline-block;
+  line-height: 1;
 }
 
 .brand-mark {
@@ -221,8 +227,8 @@ img {
   display: grid;
   place-items: center;
   color: #041a2f;
-  background: linear-gradient(130deg, var(--primary), var(--secondary));
-  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.35);
+  background: transparent;
+  box-shadow: none;
 }
 
 .brand-mark img {
@@ -246,6 +252,20 @@ img {
   border-radius: 999px;
   position: relative;
   transition: 0.2s ease;
+}
+
+.nav-auth-link,
+.nav-auth-btn {
+  margin-top: 4px;
+}
+
+.nav-auth-btn {
+  width: max-content;
+  align-self: flex-start;
+}
+
+.nav-auth-link {
+  display: none;
 }
 
 .site-nav a::after {
@@ -280,6 +300,39 @@ img {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-0);
+  font-size: 0.86rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.profile-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-0);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.profile-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .theme-switcher {
@@ -465,7 +518,7 @@ main {
 }
 
 .gradient-text.is-typing {
-  display: inline;
+  display: inline-block;
   min-height: 1.25em;
   max-width: 100%;
   white-space: normal;
@@ -488,12 +541,6 @@ main {
 
 body[data-theme="light"] .gradient-text-caret {
   background: rgba(38, 70, 120, 0.8);
-}
-
-@media (max-width: 860px) {
-  .gradient-text.is-typing {
-    min-width: 0 !important;
-  }
 }
 
 .gradient-text.is-swapping {
@@ -887,10 +934,13 @@ body[data-theme="light"] .gradient-text-caret {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
 .downloads-platform {
   padding: 16px;
+  min-width: 0;
 }
 
 .downloads-platform h3 {
@@ -906,12 +956,20 @@ body[data-theme="light"] .gradient-text-caret {
 
 .downloads-table-wrap {
   overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .downloads-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 360px;
+  min-width: 0;
+}
+
+.downloads-table td:first-child {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .downloads-table th,
@@ -1556,31 +1614,29 @@ body[data-theme="light"] .gradient-text-caret {
 
 @media (max-width: 760px) {
   .site-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "brand menu"
-      "nav nav"
-      "theme theme"
-      "auth auth";
+    display: flex;
+    flex-wrap: nowrap;
     align-items: center;
-    row-gap: 10px;
+    gap: 10px;
     padding: 10px;
+    position: sticky;
   }
 
   .brand {
-    grid-area: brand;
     margin-right: 0;
   }
 
   .menu-toggle {
     display: inline-flex;
-    grid-area: menu;
-    justify-self: end;
+    order: 3;
+    margin-left: auto;
   }
 
   .site-nav {
-    grid-area: nav;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
     width: 100%;
     display: none;
     flex-direction: column;
@@ -1588,6 +1644,7 @@ body[data-theme="light"] .gradient-text-caret {
     padding: 8px;
     background: rgba(11, 19, 38, 0.82);
     border-radius: 12px;
+    z-index: 25;
   }
 
   .site-nav a {
@@ -1599,8 +1656,23 @@ body[data-theme="light"] .gradient-text-caret {
   }
 
   .theme-switcher {
-    grid-area: theme;
     width: max-content;
+    order: 2;
+  }
+
+  .auth-slot {
+    order: 2;
+    display: none;
+  }
+
+  .nav-auth-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    color: var(--text-0);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .repo-metrics {
@@ -1650,6 +1722,10 @@ body[data-theme="light"] .gradient-text-caret {
   }
 
   .cursor-glow {
+    display: none;
+  }
+
+  .downloads-table .col-updated {
     display: none;
   }
 }

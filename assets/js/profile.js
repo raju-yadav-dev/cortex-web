@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const user = await window.CortexWeb.requireAuth();
+  const user = await window.AltarixWeb.requireAuth();
   if (!user) return;
 
   renderProfile(user);
@@ -12,7 +12,7 @@ function renderProfile(user) {
   const roleNode = document.querySelector("[data-profile-role]");
   const avatarNode = document.querySelector("[data-avatar]");
 
-  if (nameNode) nameNode.textContent = user.name || "Cortex User";
+  if (nameNode) nameNode.textContent = user.name || "Altarix User";
   if (emailNode) emailNode.textContent = user.email || "--";
   if (roleNode) roleNode.textContent = `Role: ${user.role || "user"}`;
   if (avatarNode) {
@@ -45,16 +45,17 @@ function bindForm(currentUser) {
     };
 
     try {
-      const response = await window.CortexWeb.api("/api/profile", {
+      const response = await window.AltarixWeb.api("/api/profile", {
         method: "PATCH",
         body: payload
       });
       const merged = { ...currentUser, ...response.user };
-      window.CortexWeb.setUser(merged);
+      window.AltarixWeb.setUser(merged);
       renderProfile(merged);
-      window.CortexWeb.showToast("Profile updated.", "success");
+      window.AltarixWeb.showToast("Profile updated.", "success");
     } catch (error) {
-      window.CortexWeb.showToast(error.message, "error");
+      window.AltarixWeb.showToast(error.message, "error");
     }
   });
 }
+

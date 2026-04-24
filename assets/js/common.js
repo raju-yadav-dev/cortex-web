@@ -1,6 +1,6 @@
 (() => {
-  const TOKEN_KEY = "cortex_token";
-  const USER_KEY = "cortex_user";
+  const TOKEN_KEY = "Altarix_token";
+  const USER_KEY = "Altarix_user";
   const API_ROUTES = Object.freeze({
     login: "/api/auth/login",
     signup: "/api/auth/signup",
@@ -10,7 +10,7 @@
     profile: "/api/profile",
     adminUsers: "/api/admin/users"
   });
-  const THEME_KEY = "cortex_theme";
+  const THEME_KEY = "Altarix_theme";
   const DARK_THEME = "dark";
   const LIGHT_THEME = "light";
   const DEFAULT_THEME = "dark";
@@ -230,21 +230,70 @@
   function renderAuthSlots() {
     const slots = document.querySelectorAll("[data-auth-slot]");
     const user = getUser();
+    const label = "Profile";
+    const initial = "P";
     slots.forEach((slot) => {
+      slot.innerHTML = "";
       if (user) {
-        slot.innerHTML = `
-          <a class="btn btn-ghost btn-sm" href="profile.html">Profile</a>
-          ${user.role === "admin" ? '<a class="btn btn-ghost btn-sm" href="admin.html">Admin</a>' : ""}
-          <button class="btn btn-primary btn-sm" data-logout-btn>Logout</button>
-        `;
-      } else {
-        slot.innerHTML = `
-          <a class="btn btn-ghost btn-sm" href="login.html">Login</a>
-          <a class="btn btn-primary btn-sm" href="signup.html">Sign Up</a>
-        `;
+        slot.appendChild(createProfileChip({
+          href: "profile.html",
+          label: "Open profile",
+          initial,
+          name: label
+        }));
       }
     });
+    renderAuthMenu(user);
     updateHomeCta(user);
+  }
+
+  function createProfileChip({ href, label, initial, name }) {
+    const link = document.createElement("a");
+    link.className = "profile-chip";
+    link.href = href;
+    link.setAttribute("aria-label", label);
+
+    const avatar = document.createElement("span");
+    avatar.className = "profile-avatar";
+    avatar.textContent = initial;
+
+    const nameNode = document.createElement("span");
+    nameNode.className = "profile-name";
+    nameNode.textContent = name;
+
+    link.appendChild(avatar);
+    link.appendChild(nameNode);
+    return link;
+  }
+
+  function renderAuthMenu(user) {
+    const menu = document.querySelector("[data-nav-menu]");
+    if (!menu) return;
+    menu.querySelectorAll("[data-auth-menu]").forEach((node) => node.remove());
+
+    if (user) {
+      const profileLink = document.createElement("a");
+      profileLink.className = "nav-auth-link";
+      profileLink.href = "profile.html";
+      profileLink.dataset.authMenu = "true";
+      profileLink.textContent = "Profile";
+      menu.appendChild(profileLink);
+      return;
+    }
+
+    const loginLink = document.createElement("a");
+    loginLink.className = "nav-auth-link";
+    loginLink.href = "login.html";
+    loginLink.dataset.authMenu = "true";
+    loginLink.textContent = "Login";
+    menu.appendChild(loginLink);
+
+    const signupLink = document.createElement("a");
+    signupLink.className = "nav-auth-link";
+    signupLink.href = "signup.html";
+    signupLink.dataset.authMenu = "true";
+    signupLink.textContent = "Sign Up";
+    menu.appendChild(signupLink);
   }
 
   function updateHomeCta(user = getUser()) {
@@ -258,9 +307,8 @@
     if (!title || !copy || !actions) return;
 
     if (!user) {
-      title.textContent = "Ready to start with Cortex?";
-      copy.textContent =
-        "Create your account, log in, and manage users through the admin dashboard.";
+      title.textContent = "Ready to start with Altarix?";
+      copy.textContent = "Create your account, log in, and manage your profile.";
       actions.innerHTML = `
         <a class="btn btn-primary" href="login.html">Login</a>
         <a class="btn btn-ghost" href="signup.html">Sign Up</a>
@@ -268,11 +316,10 @@
       return;
     }
 
-    title.textContent = `Welcome back, ${user.name || "Cortex user"}.`;
-    copy.textContent = "Open your profile or jump straight to the admin tools.";
+    title.textContent = `Welcome back, ${user.name || "Altarix user"}.`;
+    copy.textContent = "Open your profile and keep your account up to date.";
     actions.innerHTML = `
       <a class="btn btn-primary" href="profile.html">Go to Profile</a>
-      ${user.role === "admin" ? '<a class="btn btn-ghost" href="admin.html">Open Admin</a>' : ''}
       <button class="btn btn-ghost" type="button" data-logout-btn>Logout</button>
     `;
   }
@@ -506,7 +553,7 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
-  window.CortexWeb = {
+  window.AltarixWeb = {
     api,
     routes: API_ROUTES,
     getToken,
@@ -522,3 +569,4 @@
     applyTheme
   };
 })();
+

@@ -11,7 +11,7 @@ const supabaseClient = window.supabase?.createClient(
 let allUsers = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const user = window.CortexWeb?.getUser?.();
+  const user = window.AltarixWeb?.getUser?.();
 
   if (!user) {
     window.location.href = "login.html";
@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (user.role !== "admin" || user.accountType !== "admin") {
-    window.CortexWeb.showToast("Admin access required.", "error");
+    window.AltarixWeb.showToast("Admin access required.", "error");
     window.location.href = "index.html";
     return;
   }
@@ -54,7 +54,7 @@ async function loadUsers() {
     renderTable(allUsers);
   } catch (error) {
     console.log("Admin users load error:", error);
-    window.CortexWeb.showToast(error.message || "Could not load users.", "error");
+    window.AltarixWeb.showToast(error.message || "Could not load users.", "error");
     setAdminLockedState(error.message || "Could not load users.");
   }
 }
@@ -87,7 +87,7 @@ function renderTable(users) {
         <td>@${escapeHtml(user.username || "--")}</td>
         <td>${escapeHtml(user.email || "--")}</td>
         <td><span class="audit-status audit-status-success">user</span></td>
-        <td>${window.CortexWeb.formatDate(user.created_at)}</td>
+        <td>${window.AltarixWeb.formatDate(user.created_at)}</td>
       </tr>
     `
     )
@@ -157,3 +157,4 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+

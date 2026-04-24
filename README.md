@@ -1,6 +1,6 @@
-# Cortex Web
+# Altarix Web
 
-This is the deploy-ready version of the `cortex-site` frontend. It keeps the same static pages and assets, and the login/signup pages connect directly to Supabase.
+This is the deploy-ready version of the `Altarix-site` frontend. It keeps the same static pages and assets, and the login/signup pages connect directly to Supabase.
 
 ## Setup
 
@@ -23,3 +23,4 @@ Optional:
 
 - `PUBLIC_REPO_URL`
 - `SITE_NAME`
+

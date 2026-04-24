@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Download Altarix installers for Windows, macOS, and Linux."
+    />
+    <meta name="theme-color" content="#05080f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Altarix | Downloads" />
+    <meta
+      property="og:description"
+      content="Download Altarix installers for Windows, macOS, and Linux."
+    />
+    <meta property="og:image" content="assets/icon/Altarix 512x512.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Altarix | Downloads" />
+    <meta
+      name="twitter:description"
+      content="Download Altarix installers for Windows, macOS, and Linux."
+    />
+    <meta name="twitter:image" content="assets/icon/Altarix 512x512.png" />
+    <title>Altarix | Downloads</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/Altarix 32x32.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="assets/icon/Altarix 256x256.png" />
+    <link rel="manifest" href="assets/icon/manifest.json" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body class="page-downloads">
+    <div class="scroll-progress" data-scroll-progress aria-hidden="true"></div>
+    <canvas class="particle-canvas" data-particle-canvas aria-hidden="true"></canvas>
+    <div class="cursor-glow" data-cursor-glow aria-hidden="true"></div>
+
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="orb orb-one"></span>
+      <span class="orb orb-two"></span>
+      <span class="orb orb-three"></span>
+      <div class="grid-glow"></div>
+    </div>
+
+    <header class="site-header glass">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img src="assets/icon/Altarix-64.png" alt="Altarix icon" />
+        </span>
+        <span class="brand-text">Altarix</span>
+      </a>
+      <button class="menu-toggle" data-menu-toggle aria-label="Toggle navigation">Menu</button>
+      <nav class="site-nav" data-nav-menu>
+        <a href="index.html#about">About</a>
+        <a href="index.html#repo">GitHub</a>
+        <a href="downloads.html" class="is-active" aria-current="page">Downloads</a>
+        <a href="index.html#web-future">Web Future</a>
+      </nav>
+      <div class="auth-slot" data-auth-slot></div>
+    </header>
+
+    <main>
+      <section class="section reveal">
+        <div class="section-head">
+          <p class="kicker">Installer Downloads</p>
+          <h2>Download and install Altarix locally</h2>
+        </div>
+        <div id="downloadSections" class="downloads-sections">
+          <article class="downloads-platform glass">
+            <h3>Loading download catalog...</h3>
+            <p>Please wait while platform installers are loaded.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Copyright <span data-year></span> Altarix. All rights reserved.</p>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>
