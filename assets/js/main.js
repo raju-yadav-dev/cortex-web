@@ -317,437 +317,125 @@ async function loadDownloads() {
   const host = document.getElementById("downloadSections");
   if (!host) return;
 
-  const normalizeDownloadUrl = (url) => {
-    const raw = String(url || "").trim();
-    if (!raw) return "#";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    return raw.replace(/^\/+/, "");
+  const installers = {
+    windows: { label: "Windows", file: "Altarix-windows.exe", type: "EXE" },
+    linux: { label: "Linux", file: "Altarix-linux.deb", type: "DEB" },
+    macos: { label: "macOS", file: "Altarix-macos.dmg", type: "DMG" }
   };
 
-  const extensionFor = (fileName) => {
-    const name = String(fileName || "").toLowerCase();
-    const dot = name.lastIndexOf(".");
-    return dot >= 0 ? name.slice(dot) : "";
+  const detectOs = () => {
+    const ua = String(navigator.userAgent || "").toLowerCase();
+    const platform = String(
+      navigator.userAgentData?.platform || navigator.platform || ""
+    ).toLowerCase();
+    const source = `${ua} ${platform}`;
+
+    if (source.includes("win")) return "windows";
+    if (source.includes("mac") || source.includes("darwin")) return "macos";
+    if (source.includes("linux") || source.includes("x11")) return "linux";
+    return "windows";
   };
 
-  const formatType = (fileName) => {
-    const ext = extensionFor(fileName).replace(".", "").toUpperCase();
-    return ext || "--";
+  const normalizeBaseUrl = (url) => {
+    const value = String(url || "").trim();
+    if (!value) return "";
+    const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value.replace(/^\/+/, "")}`;
+    return withProtocol.endsWith("/") ? withProtocol : `${withProtocol}/`;
   };
 
-  const renderRows = (files) =>
-    files
-      .map(
-        (file) => {
-          const sizeText =
-            Number.isFinite(Number(file.size)) && Number(file.size) > 0
-              ? window.AltarixWeb.formatBytes(Number(file.size))
-              : "--";
-          const updatedText = file.updatedAt
-            ? window.AltarixWeb.formatDate(file.updatedAt)
-            : "--";
-          return `
-        <tr>
-          <td>${escapeHtml(file.name)}</td>
-          <td>${escapeHtml(formatType(file.name))}</td>
-          <td data-download-size="${escapeHtml(file.name)}">${escapeHtml(sizeText)}</td>
-          <td class="col-updated" data-download-updated="${escapeHtml(file.name)}">${escapeHtml(updatedText)}</td>
-          <td><a class="btn btn-primary btn-sm" href="${escapeHtml(normalizeDownloadUrl(file.downloadUrl))}">Download</a></td>
-        </tr>
-      `;
-        }
-      )
-      .join("");
+  const buildDownloadUrl = (baseUrl, key) => {
+    const target = installers[key];
+    if (!target) return "#";
+    const normalized = normalizeBaseUrl(baseUrl);
+    if (!normalized) return "#";
 
-  const platformDefs = [
-    {
-      key: "windows",
-      title: "Windows",
-      subtitle: "EXE and MSI installers",
-      extensions: [".exe", ".msi"]
-    },
-    {
-      key: "linux",
-      title: "Linux",
-      subtitle: "DEB and RPM packages",
-      extensions: [".deb", ".rpm", ".rmp"]
-    },
-    {
-      key: "mac",
-      title: "macOS",
-      subtitle: "PKG and DMG installers",
-      extensions: [".pkg", ".dmg"]
-    },
-    {
-      key: "other",
-      title: "Other",
-      subtitle: "Additional package formats",
-      extensions: []
-    }
-  ];
-
-  const normalizePlatformKey = (value) => {
-    const normalized = String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "");
-    if (["windows", "win"].includes(normalized)) return "windows";
-    if (["linux", "ubuntu", "debian"].includes(normalized)) return "linux";
-    if (["mac", "macos", "osx"].includes(normalized)) return "mac";
-    if (["other", "misc"].includes(normalized)) return "other";
-    return normalized || "other";
-  };
-
-  const inferPlatformFromFileName = (fileName) => {
-    const ext = extensionFor(fileName);
-    if (platformDefs[0].extensions.includes(ext)) return "windows";
-    if (platformDefs[1].extensions.includes(ext) || [".appimage", ".snap", ".npm"].includes(ext)) {
-      return "linux";
-    }
-    if (platformDefs[2].extensions.includes(ext)) return "mac";
-    return "other";
-  };
-
-  const parseCatalogMarkdown = (raw) => {
-    const sections = [];
-    const lines = String(raw || "").split(/\r?\n/);
-    let current = null;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      const headingMatch = trimmed.match(/^#{2,6}\s*(.+?)\s*$/);
-      if (headingMatch) {
-        const key = normalizePlatformKey(headingMatch[1]);
-        const platformMatch = platformDefs.find((item) => item.key === key);
-        current = {
-          key,
-          title: platformMatch?.title || headingMatch[1].trim(),
-          subtitle: platformMatch?.subtitle || "Available packages",
-          files: []
-        };
-        sections.push(current);
-        continue;
-      }
-
-      const bulletMatch = trimmed.match(/^[-*]\s*(.+?)\s*$/);
-      if (bulletMatch && current) {
-        const fileName = bulletMatch[1].trim();
-        current.files.push({
-          name: fileName,
-          size: null,
-          updatedAt: null,
-          downloadUrl: `downloads/${encodeURIComponent(fileName)}`,
-          platform: current.key || inferPlatformFromFileName(fileName)
-        });
-      }
+    if (normalized.includes("{os}") || normalized.includes("{ext}")) {
+      const ext = target.file.split(".").pop();
+      return normalized
+        .replaceAll("{os}", key)
+        .replaceAll("{ext}", ext || "");
     }
 
-    return sections.filter((section) => section.files.length);
+    return `${normalized}${target.file}`;
   };
 
-  const groupByPlatform = (files) => {
-    const grouped = {
-      windows: [],
-      linux: [],
-      mac: [],
-      other: []
-    };
+  const fetchUpdate = async () => {
+    if (window.AltarixWeb && typeof window.AltarixWeb.api === "function") {
+      return window.AltarixWeb.api("/api/update");
+    }
 
-    files.forEach((file) => {
-      const ext = extensionFor(file.name);
-      if (platformDefs[0].extensions.includes(ext)) {
-        grouped.windows.push(file);
-        return;
-      }
-      if (platformDefs[1].extensions.includes(ext)) {
-        grouped.linux.push(file);
-        return;
-      }
-      if (platformDefs[2].extensions.includes(ext)) {
-        grouped.mac.push(file);
-        return;
-      }
-      grouped.other.push(file);
+    const response = await fetch("/api/update", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
     });
 
-    return grouped;
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    return response.json();
   };
 
-  const renderSections = (files) => {
-    const grouped = groupByPlatform(files);
-    host.innerHTML = platformDefs
-      .map((platform) => {
-        const rows = grouped[platform.key] || [];
-        const tableRows = rows.length
-          ? renderRows(rows)
-          : `
-            <tr>
-              <td colspan="5">No ${escapeHtml(platform.title)} package available yet.</td>
-            </tr>
-          `;
+  const renderDownloads = (version, urls, recommendedKey) => {
+    const recommended = installers[recommendedKey] || installers.windows;
+    const items = Object.entries(installers)
+      .map(([key, item]) => {
+        const isRecommended = key === recommendedKey;
+        const badge = isRecommended
+          ? '<span class="kicker" style="margin-left:8px;display:inline-block;">Recommended for your system</span>'
+          : "";
+
         return `
           <article class="downloads-platform glass">
-            <h3>${escapeHtml(platform.title)}</h3>
-            <p>${escapeHtml(platform.subtitle)}</p>
-            <div class="downloads-table-wrap">
-              <table class="downloads-table">
-                <thead>
-                  <tr>
-                    <th>File</th>
-                    <th>Type</th>
-                    <th>Size</th>
-                    <th class="col-updated">Updated</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-              </table>
+            <h3>${escapeHtml(item.label)}${badge}</h3>
+            <p>${escapeHtml(item.file)}</p>
+            <div class="hero-actions">
+              <a class="btn ${isRecommended ? "btn-primary" : "btn-ghost"}" href="${escapeHtml(urls[key])}" download>
+                Download ${escapeHtml(item.type)}
+              </a>
             </div>
           </article>
         `;
       })
       .join("");
-  };
 
-  const renderCatalogSections = (sections) => {
-    host.innerHTML = sections
-      .map((section) => {
-        const rows = Array.isArray(section.files) ? section.files : [];
-        const tableRows = rows.length
-          ? renderRows(rows)
-          : `
-            <tr>
-              <td colspan="5">No ${escapeHtml(section.title || "downloads")} available yet.</td>
-            </tr>
-          `;
-        return `
-          <article class="downloads-platform glass">
-            <h3>${escapeHtml(section.title || "Downloads")}</h3>
-            <p>${escapeHtml(section.subtitle || "Available packages")}</p>
-            <div class="downloads-table-wrap">
-              <table class="downloads-table">
-                <thead>
-                  <tr>
-                    <th>File</th>
-                    <th>Type</th>
-                    <th>Size</th>
-                    <th class="col-updated">Updated</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-              </table>
-            </div>
-          </article>
-        `;
-      })
-      .join("");
-  };
-
-  const hydrateCatalogMetadata = async (sections) => {
-    const uniqueFiles = [];
-    const seenNames = new Set();
-
-    sections.forEach((section) => {
-      (section.files || []).forEach((file) => {
-        const normalizedName = String(file.name || "").trim().toLowerCase();
-        if (!normalizedName || seenNames.has(normalizedName)) return;
-        seenNames.add(normalizedName);
-        uniqueFiles.push(file);
-      });
-    });
-
-    await Promise.all(
-      uniqueFiles.map(async (file) => {
-        const candidates = [
-          normalizeDownloadUrl(file.downloadUrl),
-          `downloads/${encodeURIComponent(file.name)}`
-        ];
-
-        for (const candidate of candidates) {
-          try {
-            let response = await fetch(candidate, { method: "HEAD", cache: "no-store" });
-            if (response.status === 405) {
-              response = await fetch(candidate, { method: "GET", cache: "no-store" });
-            }
-            if (!response.ok) {
-              continue;
-            }
-
-            const contentLength = Number(response.headers.get("content-length") || 0);
-            const lastModified = response.headers.get("last-modified");
-            const sizeNode = host.querySelector(
-              `[data-download-size="${CSS.escape(String(file.name))}"]`
-            );
-            const updatedNode = host.querySelector(
-              `[data-download-updated="${CSS.escape(String(file.name))}"]`
-            );
-
-            if (sizeNode && Number.isFinite(contentLength) && contentLength > 0) {
-              sizeNode.textContent = window.AltarixWeb.formatBytes(contentLength);
-            }
-            if (updatedNode && lastModified) {
-              const iso = new Date(lastModified).toISOString();
-              updatedNode.textContent = window.AltarixWeb.formatDate(iso);
-            }
-            break;
-          } catch (_error) {
-            // Try the next path.
-          }
-        }
-      })
-    );
-  };
-
-  const buildFallbackFiles = async () => {
-    const fallbackNames = [
-      "Altarix-1.5.1-installer.exe",
-      "Altarix-1.5.1-installer.msi",
-      "Altarix-1.5.1.exe",
-      "Altarix-1.5.1.msi",
-      "Altarix-1.2.1-installer.exe",
-      "Altarix-1.2.1-installer.msi",
-      "Altarix-1.0.msi",
-      "Altarix-1.5.1.deb",
-      "Altarix-1.5.1.rpm",
-      "Altarix-1.5.1.pkg",
-      "Altarix-1.5.1.dmg"
-    ];
-    const prefixes = ["downloads/"];
-    const discovered = [];
-
-    for (const name of fallbackNames) {
-      let found = null;
-      for (const prefix of prefixes) {
-        const candidate = normalizeDownloadUrl(`${prefix}${encodeURIComponent(name)}`);
-        try {
-          let response = await fetch(candidate, { method: "HEAD" });
-          if (response.status === 405) {
-            response = await fetch(candidate, { method: "GET" });
-          }
-          if (!response.ok) continue;
-          const sizeHeader = Number(response.headers.get("content-length") || 0);
-          found = {
-            name,
-            size: Number.isFinite(sizeHeader) && sizeHeader > 0 ? sizeHeader : null,
-            updatedAt: null,
-            downloadUrl: candidate
-          };
-          break;
-        } catch (_error) {
-          // Try the next fallback path.
-        }
-      }
-      if (found) {
-        discovered.push(found);
-      }
-    }
-
-    return discovered;
+    host.innerHTML = `
+      <article class="downloads-platform glass">
+        <h3>Latest Version: ${escapeHtml(version || "Unknown")}</h3>
+        <p>Choose your installer below.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="${escapeHtml(urls[recommendedKey])}" download>
+            Download for ${escapeHtml(recommended.label)}
+          </a>
+        </div>
+      </article>
+      ${items}
+    `;
   };
 
   try {
-    try {
-      const catalogResponse = await fetch("downloads/download-catalog.md", {
-        cache: "no-store"
-      });
-      if (catalogResponse.ok) {
-        const catalogRaw = await catalogResponse.text();
-        const catalogSections = parseCatalogMarkdown(catalogRaw);
-        if (catalogSections.length) {
-          renderCatalogSections(catalogSections);
-          void hydrateCatalogMetadata(catalogSections);
-          return;
-        }
-      }
-    } catch (_error) {
-      // Fall back to API/static probing below.
+    const update = await fetchUpdate();
+    const version = String(update?.version || "").trim();
+    const baseUrl = String(update?.download_url || "").trim();
+
+    if (!baseUrl) {
+      throw new Error("Download URL not available.");
     }
 
-    let data = null;
-    let apiError = null;
-    try {
-      data = await window.AltarixWeb.api("/api/downloads");
-    } catch (error) {
-      if (error?.status === 404) {
-        try {
-          data = await window.AltarixWeb.api("api/downloads");
-        } catch (nestedError) {
-          apiError = nestedError;
-        }
-      } else {
-        apiError = error;
-      }
-    }
+    const osKey = detectOs();
+    const urls = {
+      windows: buildDownloadUrl(baseUrl, "windows"),
+      linux: buildDownloadUrl(baseUrl, "linux"),
+      macos: buildDownloadUrl(baseUrl, "macos")
+    };
 
-    let files = Array.isArray(data?.files) ? data.files : [];
-    let sections = Array.isArray(data?.sections) ? data.sections : [];
-    if (!files.length) {
-      files = await buildFallbackFiles();
-    }
-
-    if (!files.length) {
-      host.innerHTML = `
-        <article class="downloads-platform glass">
-          <h3>No installers found</h3>
-          <p>Put installer files in <code>downloads/</code>.</p>
-        </article>
-      `;
-      if (apiError) {
-        console.warn("Download API fallback used due:", apiError.message || apiError);
-      }
-      return;
-    }
-
-    if (sections.length) {
-      const known = new Set();
-      sections = sections.map((section) => {
-        const key = normalizePlatformKey(section.key || section.title);
-        const sectionFiles = (Array.isArray(section.files) ? section.files : []).map((file) => {
-          known.add(String(file.name || "").toLowerCase());
-          return file;
-        });
-        return {
-          key,
-          title: section.title || platformDefs.find((item) => item.key === key)?.title || "Downloads",
-          subtitle:
-            section.subtitle ||
-            platformDefs.find((item) => item.key === key)?.subtitle ||
-            "Available packages",
-          files: sectionFiles
-        };
-      });
-
-      const remainingFiles = files.filter(
-        (file) => !known.has(String(file.name || "").toLowerCase())
-      );
-
-      if (remainingFiles.length) {
-        const grouped = groupByPlatform(remainingFiles);
-        platformDefs.forEach((platform) => {
-          const extraFiles = grouped[platform.key] || [];
-          if (!extraFiles.length) return;
-          sections.push({
-            key: platform.key,
-            title: platform.title,
-            subtitle: platform.subtitle,
-            files: extraFiles
-          });
-        });
-      }
-
-      renderCatalogSections(sections);
-      return;
-    }
-
-    renderSections(files);
+    renderDownloads(version, urls, osKey);
   } catch (error) {
     host.innerHTML = `
       <article class="downloads-platform glass">
         <h3>Download load failed</h3>
-        <p>${escapeHtml(error.message || "Could not load installer list.")}</p>
+        <p>${escapeHtml(error.message || "Could not load installer links.")}</p>
       </article>
     `;
   }
