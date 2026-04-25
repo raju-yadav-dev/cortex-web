@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Download Altarix installers for Windows, macOS, and Linux."
+      content="Download detailed Altarix installers for Windows and Linux, including EXE, MSI, and DEB packages."
     />
     <meta name="theme-color" content="#05080f" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Altarix | Downloads" />
     <meta
       property="og:description"
-      content="Download Altarix installers for Windows, macOS, and Linux."
+      content="Download detailed Altarix installers for Windows and Linux, including EXE, MSI, and DEB packages."
     />
     <meta property="og:image" content="assets/icon/Altarix 512x512.png" />
     <meta property="og:image:type" content="image/png" />
@@ -22,7 +22,7 @@
     <meta name="twitter:title" content="Altarix | Downloads" />
     <meta
       name="twitter:description"
-      content="Download Altarix installers for Windows, macOS, and Linux."
+      content="Download detailed Altarix installers for Windows and Linux, including EXE, MSI, and DEB packages."
     />
     <meta name="twitter:image" content="assets/icon/Altarix 512x512.png" />
     <title>Altarix | Downloads</title>
@@ -64,12 +64,58 @@
       <section class="section reveal">
         <div class="section-head">
           <p class="kicker">Installer Downloads</p>
-          <h2>Download and install Altarix locally</h2>
+          <h2>Download the installer that matches your system</h2>
+          <p class="section-copy">
+            Windows users can choose between the EXE and MSI installers, while Linux users
+            can use the DEB package. Each build includes the configured icon and installer options.
+          </p>
         </div>
-        <div id="downloadSections" class="downloads-sections">
-          <article class="downloads-platform glass">
-            <h3>Loading download catalog...</h3>
-            <p>Please wait while platform installers are loaded.</p>
+        <div class="downloads-summary glass" data-download-summary>
+          <div class="downloads-summary-copy">
+            <p class="kicker">Latest release</p>
+            <h3>Loading release details...</h3>
+            <p>Please wait while the installer list and release notes are loaded.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reveal">
+        <div class="section-head">
+          <p class="kicker">Available installers</p>
+          <h2>Choose the package that fits your install flow</h2>
+        </div>
+        <div id="downloadSections" class="downloads-sections"></div>
+      </section>
+
+      <section class="section reveal">
+        <div class="section-head">
+          <p class="kicker">Installation notes</p>
+          <h2>What each package is best for</h2>
+        </div>
+        <div class="downloads-guide-grid">
+          <article class="downloads-guide glass">
+            <p class="downloads-guide-tag">Windows EXE</p>
+            <h3>Best for most desktop users</h3>
+            <p>
+              This is the simplest path if you want a guided installer that creates shortcuts
+              and handles the app setup for you.
+            </p>
+          </article>
+          <article class="downloads-guide glass">
+            <p class="downloads-guide-tag">Windows MSI</p>
+            <h3>Best for managed deployment</h3>
+            <p>
+              Use this package when you want a more enterprise-friendly installer for scripted
+              or controlled Windows deployments.
+            </p>
+          </article>
+          <article class="downloads-guide glass">
+            <p class="downloads-guide-tag">Linux DEB</p>
+            <h3>Best for Debian-based systems</h3>
+            <p>
+              Install the DEB package on Ubuntu, Debian, and similar distributions using your
+              preferred package manager or the dpkg flow.
+            </p>
           </article>
         </div>
       </section>

@@ -251,18 +251,27 @@ async function handleUpdate(req, res) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("app_updates")
-    .select("version, download_url, release_notes, is_mandatory")
+    .select("version, download_url, release_notes, is_mandatory, type")
     .order("created_at", { ascending: false })
-    .limit(1);
+    .limit(2);
 
   if (error) {
     return sendJson(res, 500, { error: "Failed to fetch updates." });
   }
 
-  const latest = data && data.length
-    ? data[0]
-    : { version: "", download_url: "", release_notes: "", is_mandatory: false };
-  return sendJson(res, 200, latest);
+  const updates = Array.isArray(data) ? data : [];
+  const latest = updates.length
+    ? updates[0]
+    : { version: "", download_url: "", release_notes: "", is_mandatory: false, type: "" };
+
+  return sendJson(res, 200, {
+    version: latest.version,
+    download_url: latest.download_url,
+    release_notes: latest.release_notes,
+    is_mandatory: latest.is_mandatory,
+    type: latest.type,
+    updates
+  });
 }
 
 async function handleDownloads(req, res) {

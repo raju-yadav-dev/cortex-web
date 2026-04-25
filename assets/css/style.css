@@ -938,20 +938,223 @@ body[data-theme="light"] .gradient-text-caret {
   min-width: 0;
 }
 
+.downloads-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  padding: 20px;
+  align-items: start;
+}
+
+.downloads-summary-copy h3 {
+  margin: 6px 0 10px;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.downloads-summary-copy p {
+  margin: 0;
+  color: var(--text-1);
+  max-width: 62ch;
+}
+
+.downloads-summary-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.downloads-meta-card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.downloads-meta-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-1);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.downloads-meta-card strong {
+  display: block;
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+.downloads-meta-notes {
+  max-height: 190px;
+  overflow: auto;
+}
+
+.downloads-debug {
+  margin-top: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+}
+
+.downloads-debug summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-1);
+}
+
+.downloads-debug-block {
+  margin-top: 10px;
+}
+
+.downloads-debug-block p {
+  margin: 0 0 6px;
+  color: var(--text-1);
+  font-size: 0.82rem;
+}
+
+.downloads-debug-rows {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.downloads-debug-rows li {
+  color: var(--text-1);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.downloads-debug-rows li span {
+  display: block;
+  overflow-wrap: anywhere;
+  opacity: 0.95;
+}
+
+.downloads-notes-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-1);
+}
+
+.downloads-notes-list li + li {
+  margin-top: 6px;
+}
+
 .downloads-platform {
   padding: 16px;
   min-width: 0;
 }
 
-.downloads-platform h3 {
+.downloads-platform.is-featured {
+  border-color: rgba(43, 245, 199, 0.35);
+  box-shadow: 0 0 0 1px rgba(43, 245, 199, 0.12), var(--shadow);
+}
+
+.downloads-platform-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.downloads-platform-family {
   margin: 0 0 4px;
+  color: var(--primary);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.downloads-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  color: #bbecff;
+  border: 1px solid rgba(103, 162, 255, 0.34);
+  background: rgba(20, 45, 75, 0.42);
+  white-space: nowrap;
+}
+
+.downloads-platform h3 {
+  margin: 0;
   font-family: "Sora", sans-serif;
+}
+
+.downloads-platform-summary {
+  margin: 0 0 8px;
+  color: var(--text-0);
+  font-size: 0.92rem;
+}
+
+.downloads-platform-file {
+  margin: 0 0 12px;
+  color: var(--text-1);
+  font-size: 0.84rem;
+}
+
+.downloads-platform-list,
+.downloads-platform-steps ol {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-1);
+}
+
+.downloads-platform-list li + li,
+.downloads-platform-steps li + li {
+  margin-top: 5px;
+}
+
+.downloads-platform-steps {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.downloads-platform-steps-title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
 }
 
 .downloads-platform p {
   margin: 0 0 12px;
   color: var(--text-1);
   font-size: 0.88rem;
+}
+
+.downloads-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.downloads-guide {
+  padding: 18px;
+}
+
+.downloads-guide h3 {
+  margin: 8px 0 10px;
+  font-family: "Sora", sans-serif;
+}
+
+.downloads-guide p {
+  margin: 0;
+  color: var(--text-1);
+}
+
+.downloads-guide-tag {
+  margin: 0;
+  color: var(--primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.74rem;
 }
 
 .downloads-table-wrap {

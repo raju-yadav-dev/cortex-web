@@ -315,12 +315,71 @@ async function loadRepositoryCard() {
 
 async function loadDownloads() {
   const host = document.getElementById("downloadSections");
+  const summaryHost = document.querySelector("[data-download-summary]");
   if (!host) return;
 
+  const fallbackVersion = "v1.5.4";
+  const fallbackReleaseBaseUrl = "http://github.com/raju-yadav-dev/altarix/releases/download/v1.5.4/Altarix-1.5.4.exe";
+  const apiUpdateUrl =
+    (window.AltarixWeb && typeof window.AltarixWeb.buildAppUrl === "function")
+      ? window.AltarixWeb.buildAppUrl("api/update")
+      : "https://altarix.vercel.app/api/update";
+
   const installers = {
-    windows: { label: "Windows", file: "Altarix-windows.exe", type: "EXE" },
-    linux: { label: "Linux", file: "Altarix-linux.deb", type: "DEB" },
-    macos: { label: "macOS", file: "Altarix-macos.dmg", type: "DMG" }
+    windowsExe: {
+      family: "Windows",
+      label: "Windows EXE",
+      file: "Altarix-windows.exe",
+      type: "EXE",
+      mode: "Recommended",
+      summary: "Guided installer for desktop users.",
+      details: [
+        "Creates Start Menu and desktop shortcuts",
+        "Best for interactive installation",
+        "Uses the Windows installer icon"
+      ],
+      installSteps: [
+        "Download the EXE file",
+        "Run the installer",
+        "Follow the setup wizard"
+      ]
+    },
+    windowsMsi: {
+      family: "Windows",
+      label: "Windows MSI",
+      file: "Altarix-windows.msi",
+      type: "MSI",
+      mode: "Deployment",
+      summary: "Installer package for managed installs.",
+      details: [
+        "Fits scripted or enterprise deployment flows",
+        "Matches Windows installer conventions",
+        "Includes the same Windows app branding"
+      ],
+      installSteps: [
+        "Download the MSI file",
+        "Launch it with Windows Installer",
+        "Complete the installation prompts"
+      ]
+    },
+    linuxDeb: {
+      family: "Linux",
+      label: "Linux DEB",
+      file: "Altarix-linux.deb",
+      type: "DEB",
+      mode: "Recommended",
+      summary: "Debian package for Ubuntu and Debian-based systems.",
+      details: [
+        "Designed for apt/dpkg-based environments",
+        "Works well on Ubuntu and Debian",
+        "Uses the Linux installer icon"
+      ],
+      installSteps: [
+        "Download the DEB package",
+        "Install with your package tool",
+        "Launch Altarix from the applications menu"
+      ]
+    }
   };
 
   const detectOs = () => {
@@ -340,6 +399,9 @@ async function loadDownloads() {
     const value = String(url || "").trim();
     if (!value) return "";
     const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value.replace(/^\/+/, "")}`;
+    if (/\.(exe|msi|deb|dmg|pkg|aab|apk|npm)(\?|#|$)/i.test(withProtocol)) {
+      return withProtocol;
+    }
     return withProtocol.endsWith("/") ? withProtocol : `${withProtocol}/`;
   };
 
@@ -348,6 +410,23 @@ async function loadDownloads() {
     if (!target) return "#";
     const normalized = normalizeBaseUrl(baseUrl);
     if (!normalized) return "#";
+
+    if (normalized.endsWith(target.file)) {
+      return normalized;
+    }
+
+    if (/\.(exe|msi|deb|dmg|pkg|aab|apk|npm)(\?|#|$)/i.test(normalized)) {
+      const directName = normalized.match(/[^/]+\.(exe|msi|deb|dmg|pkg|aab|apk|npm)(?:[?#].*)?$/i)?.[0] || "";
+      if (!directName) return normalized;
+      if (key === "windowsExe") return normalized;
+      if (key === "windowsMsi") {
+        return normalized.replace(/\.exe(\?|#|$)/i, ".msi$1");
+      }
+      if (key === "linuxDeb") {
+        return normalized.replace(/\.exe(\?|#|$)/i, ".deb$1");
+      }
+      return normalized;
+    }
 
     if (normalized.includes("{os}") || normalized.includes("{ext}")) {
       const ext = target.file.split(".").pop();
@@ -359,12 +438,41 @@ async function loadDownloads() {
     return `${normalized}${target.file}`;
   };
 
-  const fetchUpdate = async () => {
-    if (window.AltarixWeb && typeof window.AltarixWeb.api === "function") {
-      return window.AltarixWeb.api("/api/update");
+  const resolvePrimaryDownloadUrl = (baseUrl, recommendedKey) => {
+    const target = installers[recommendedKey] || installers.windowsExe;
+    const normalized = normalizeBaseUrl(baseUrl);
+    if (!normalized) return buildDownloadUrl(fallbackReleaseBaseUrl, recommendedKey);
+    if (/\.(exe|msi|deb|dmg|pkg|aab|apk|npm)(\?|#|$)/i.test(normalized)) {
+      return normalized;
+    }
+    return buildDownloadUrl(normalized, recommendedKey) || `${normalized}${target.file}`;
+  };
+
+  const renderReleaseNotes = (notes) => {
+    const cleaned = String(notes || "").trim();
+    if (!cleaned) {
+      return '<p class="downloads-empty">No release notes were provided for this release.</p>';
     }
 
-    const response = await fetch("/api/update", {
+    const lines = cleaned
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/^[-*]\s*/, ""));
+
+    if (!lines.length) {
+      return '<p class="downloads-empty">No release notes were provided for this release.</p>';
+    }
+
+    return `
+      <ul class="downloads-notes-list">
+        ${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}
+      </ul>
+    `;
+  };
+
+  const fetchUpdate = async () => {
+    const response = await fetch(apiUpdateUrl, {
       method: "GET",
       headers: { Accept: "application/json" },
       cache: "no-store"
@@ -377,19 +485,80 @@ async function loadDownloads() {
     return response.json();
   };
 
-  const renderDownloads = (version, urls, recommendedKey) => {
-    const recommended = installers[recommendedKey] || installers.windows;
+  const normalizeType = (value) => String(value || "").trim().toLowerCase();
+
+  const resolveUrlsFromUpdates = (updatePayload, fallbackBaseUrl) => {
+    const updates = Array.isArray(updatePayload?.updates) ? updatePayload.updates : [];
+    const latestDownload = String(updatePayload?.download_url || "").trim() || fallbackBaseUrl;
+
+    const byType = new Map();
+    updates.forEach((row) => {
+      const t = normalizeType(row?.type);
+      const u = String(row?.download_url || "").trim();
+      if (t && u && !byType.has(t)) {
+        byType.set(t, u);
+      }
+    });
+
+    const exeFromType = byType.get("exe") || "";
+    const msiFromType = byType.get("msi") || "";
+    const debFromType = byType.get("deb") || byType.get("linux") || "";
+
+    const exeUrl = exeFromType || buildDownloadUrl(latestDownload, "windowsExe");
+    const msiUrl = msiFromType || buildDownloadUrl(latestDownload, "windowsMsi");
+    const debUrl = debFromType || buildDownloadUrl(latestDownload, "linuxDeb");
+
+    return {
+      windowsExe: exeUrl,
+      windowsMsi: msiUrl,
+      linuxDeb: debUrl,
+      debug: {
+        picked: {
+          exe: exeFromType ? "type=exe row" : "derived fallback",
+          msi: msiFromType ? "type=msi row" : "derived fallback",
+          deb: debFromType ? "type=deb/linux row" : "derived fallback"
+        },
+        rows: updates.map((row) => ({
+          type: normalizeType(row?.type),
+          download_url: String(row?.download_url || "").trim(),
+          version: String(row?.version || "").trim()
+        }))
+      }
+    };
+  };
+
+  const renderDownloads = (version, urls, recommendedKey, releaseNotes, sourceLabel, sourceDownloadUrl, primaryDownloadUrl, debugInfo) => {
+    const recommended = installers[recommendedKey] || installers.windowsExe;
     const items = Object.entries(installers)
       .map(([key, item]) => {
         const isRecommended = key === recommendedKey;
-        const badge = isRecommended
-          ? '<span class="kicker" style="margin-left:8px;display:inline-block;">Recommended for your system</span>'
-          : "";
+        const installStepItems = item.installSteps
+          .map((step) => `<li>${escapeHtml(step)}</li>`)
+          .join("");
+        const detailItems = item.details
+          .map((detail) => `<li>${escapeHtml(detail)}</li>`)
+          .join("");
 
         return `
-          <article class="downloads-platform glass">
-            <h3>${escapeHtml(item.label)}${badge}</h3>
-            <p>${escapeHtml(item.file)}</p>
+          <article class="downloads-platform glass ${isRecommended ? "is-featured" : ""}">
+            <div class="downloads-platform-top">
+              <div>
+                <p class="downloads-platform-family">${escapeHtml(item.family)}</p>
+                <h3>${escapeHtml(item.label)}</h3>
+              </div>
+              <span class="downloads-badge">${escapeHtml(item.mode)}</span>
+            </div>
+            <p class="downloads-platform-summary">${escapeHtml(item.summary)}</p>
+            <p class="downloads-platform-file">${escapeHtml(item.file)}</p>
+            <ul class="downloads-platform-list">
+              ${detailItems}
+            </ul>
+            <div class="downloads-platform-steps">
+              <span class="downloads-platform-steps-title">Install in 3 steps</span>
+              <ol>
+                ${installStepItems}
+              </ol>
+            </div>
             <div class="hero-actions">
               <a class="btn ${isRecommended ? "btn-primary" : "btn-ghost"}" href="${escapeHtml(urls[key])}" download>
                 Download ${escapeHtml(item.type)}
@@ -400,44 +569,137 @@ async function loadDownloads() {
       })
       .join("");
 
-    host.innerHTML = `
-      <article class="downloads-platform glass">
-        <h3>Latest Version: ${escapeHtml(version || "Unknown")}</h3>
-        <p>Choose your installer below.</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="${escapeHtml(urls[recommendedKey])}" download>
-            Download for ${escapeHtml(recommended.label)}
-          </a>
+    const debugRows = Array.isArray(debugInfo?.rows) ? debugInfo.rows : [];
+    const debugRowsHtml = debugRows.length
+      ? debugRows.map((row) => `
+            <li>
+              <strong>${escapeHtml(row.type || "unknown")}</strong>
+              <span>${escapeHtml(row.download_url || "(empty url)")}</span>
+            </li>
+          `).join("")
+      : '<li><strong>none</strong><span>No rows returned.</span></li>';
+
+    const pickedExe = String(debugInfo?.picked?.exe || "n/a");
+    const pickedMsi = String(debugInfo?.picked?.msi || "n/a");
+    const pickedDeb = String(debugInfo?.picked?.deb || "n/a");
+
+    if (summaryHost) {
+      summaryHost.innerHTML = `
+        <div class="downloads-summary-copy">
+          <p class="kicker">Latest release</p>
+          <h3>Altarix ${escapeHtml(version || "Unknown")}</h3>
+          <p>
+            Download the installer that matches your system. The release source is the exact
+            Windows EXE URL stored in the database update record, and the page resolves the
+            matching MSI and Linux links from it.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="${escapeHtml(urls[recommendedKey])}" download>
+              Download recommended package
+            </a>
+            <a class="btn btn-ghost" href="#downloadSections">
+              View all installers
+            </a>
+          </div>
         </div>
-      </article>
-      ${items}
-    `;
+        <div class="downloads-summary-meta">
+          <div class="downloads-meta-card">
+            <span class="downloads-meta-label">Recommended for you</span>
+            <strong>${escapeHtml(recommended.label)}</strong>
+          </div>
+          <div class="downloads-meta-card">
+            <span class="downloads-meta-label">Database version</span>
+            <strong>${escapeHtml(version || "Unknown")}</strong>
+          </div>
+          <div class="downloads-meta-card">
+            <span class="downloads-meta-label">Update source</span>
+            <strong>${escapeHtml(sourceLabel)}</strong>
+          </div>
+          <div class="downloads-meta-card">
+            <span class="downloads-meta-label">Direct download</span>
+            <strong>
+              <a href="${escapeHtml(primaryDownloadUrl || urls[recommendedKey])}" target="_blank" rel="noreferrer" download>
+                Open recommended file
+              </a>
+            </strong>
+          </div>
+          <div class="downloads-meta-card">
+            <span class="downloads-meta-label">Release source</span>
+            <strong>${escapeHtml(sourceDownloadUrl || "Unavailable")}</strong>
+          </div>
+          <div class="downloads-meta-card downloads-meta-notes">
+            <span class="downloads-meta-label">Release notes</span>
+            ${renderReleaseNotes(releaseNotes)}
+          </div>
+          <details class="downloads-debug">
+            <summary>Download debug details</summary>
+            <div class="downloads-debug-block">
+              <p><strong>EXE source:</strong> ${escapeHtml(pickedExe)}</p>
+              <p><strong>MSI source:</strong> ${escapeHtml(pickedMsi)}</p>
+              <p><strong>DEB source:</strong> ${escapeHtml(pickedDeb)}</p>
+              <p><strong>Resolved EXE:</strong> ${escapeHtml(urls.windowsExe || "")}</p>
+              <p><strong>Resolved MSI:</strong> ${escapeHtml(urls.windowsMsi || "")}</p>
+              <p><strong>Resolved DEB:</strong> ${escapeHtml(urls.linuxDeb || "")}</p>
+              <ul class="downloads-debug-rows">${debugRowsHtml}</ul>
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    host.innerHTML = items;
   };
 
   try {
     const update = await fetchUpdate();
-    const version = String(update?.version || "").trim();
-    const baseUrl = String(update?.download_url || "").trim();
-
-    if (!baseUrl) {
-      throw new Error("Download URL not available.");
-    }
-
+    const version = String(update?.version || "").trim() || fallbackVersion;
+    const baseUrl = String(update?.download_url || "").trim() || fallbackReleaseBaseUrl;
+    const releaseNotes = String(update?.release_notes || "").trim();
+    const osKey = detectOs();
+    const resolved = resolveUrlsFromUpdates(update, fallbackReleaseBaseUrl);
+    const urls = {
+      windowsExe: resolved.windowsExe,
+      windowsMsi: resolved.windowsMsi,
+      linuxDeb: resolved.linuxDeb
+    };
+    const recommendedKey = osKey === "linux" ? "linuxDeb" : "windowsExe";
+    const primaryDownloadUrl = resolvePrimaryDownloadUrl(baseUrl, recommendedKey);
+    renderDownloads(
+      version,
+      urls,
+      recommendedKey,
+      releaseNotes,
+      "Database update record",
+      baseUrl,
+      primaryDownloadUrl,
+      resolved.debug
+    );
+  } catch (_error) {
     const osKey = detectOs();
     const urls = {
-      windows: buildDownloadUrl(baseUrl, "windows"),
-      linux: buildDownloadUrl(baseUrl, "linux"),
-      macos: buildDownloadUrl(baseUrl, "macos")
+      windowsExe: buildDownloadUrl(fallbackReleaseBaseUrl, "windowsExe"),
+      windowsMsi: buildDownloadUrl(fallbackReleaseBaseUrl, "windowsMsi"),
+      linuxDeb: buildDownloadUrl(fallbackReleaseBaseUrl, "linuxDeb")
     };
-
-    renderDownloads(version, urls, osKey);
-  } catch (error) {
-    host.innerHTML = `
-      <article class="downloads-platform glass">
-        <h3>Download load failed</h3>
-        <p>${escapeHtml(error.message || "Could not load installer links.")}</p>
-      </article>
-    `;
+    const recommendedKey = osKey === "linux" ? "linuxDeb" : "windowsExe";
+    const primaryDownloadUrl = resolvePrimaryDownloadUrl(fallbackReleaseBaseUrl, recommendedKey);
+    renderDownloads(
+      fallbackVersion,
+      urls,
+      recommendedKey,
+      "Windows EXE, Windows MSI, and Linux DEB installers are available in this release.",
+      "Fallback release bucket",
+      fallbackReleaseBaseUrl,
+      primaryDownloadUrl,
+      {
+        picked: {
+          exe: "fallback",
+          msi: "fallback",
+          deb: "fallback"
+        },
+        rows: []
+      }
+    );
   }
 }
 
