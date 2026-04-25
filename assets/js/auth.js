@@ -11,6 +11,8 @@ const supabaseClient = window.supabase?.createClient(
 document.addEventListener("DOMContentLoaded", () => {
   bindPasswordVisibilityButtons();
 
+  const buildAppUrl = window.AltarixWeb?.buildAppUrl || ((path) => path);
+
   const page = document.body.dataset.page || "";
   if (page === "login") {
     setupLogin();
@@ -79,7 +81,9 @@ function setupLogin() {
       localStorage.setItem("Altarix_user", JSON.stringify(safeUser));
       localStorage.setItem("Altarix_token", "supabase-table-login");
       showMessage("Login successful.", "success");
-      window.location.href = safeUser.accountType === "admin" ? "admin.html" : "index.html";
+      window.location.href = safeUser.accountType === "admin"
+        ? buildAppUrl("admin.html")
+        : buildAppUrl("index.html");
     } catch (error) {
       console.log("Login error:", error);
       showMessage(error.message || "Login failed. Please try again.", "error");
@@ -150,7 +154,7 @@ function setupSignup() {
       showMessage("Account created successfully. Please login.", "success");
       form.reset();
       setTimeout(() => {
-        window.location.href = "login.html";
+        window.location.href = buildAppUrl("login.html");
       }, 800);
     } catch (error) {
       console.log("Signup error:", error);
@@ -298,7 +302,7 @@ function setupForgotPassword() {
       window.AltarixWeb.showToast("Password updated. Please login.", "success");
       form.reset();
       setTimeout(() => {
-        window.location.href = "login.html";
+        window.location.href = (window.AltarixWeb?.buildAppUrl || ((path) => path))("login.html");
       }, 600);
     } catch (error) {
       window.AltarixWeb.showToast(error.message, "error");

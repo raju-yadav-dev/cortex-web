@@ -14,6 +14,12 @@
   const DARK_THEME = "dark";
   const LIGHT_THEME = "light";
   const DEFAULT_THEME = "dark";
+  const APP_BASE_URL = "https://altarix.vercel.app";
+
+  function buildAppUrl(path) {
+    const trimmed = String(path || "").replace(/^\/+/, "");
+    return `${APP_BASE_URL}/${trimmed}`;
+  }
 
   function getToken() {
     return localStorage.getItem(TOKEN_KEY) || "";
@@ -210,7 +216,7 @@
     }
   }
 
-  async function requireAuth({ adminOnly = false, redirect = "login.html" } = {}) {
+  async function requireAuth({ adminOnly = false, redirect = buildAppUrl("login.html") } = {}) {
     let user = getUser();
     if (!user && getToken()) {
       user = await refreshUser();
@@ -221,7 +227,7 @@
     }
     if (adminOnly && user.role !== "admin") {
       showToast("Admin access required.", "error");
-      window.location.href = "profile.html";
+      window.location.href = buildAppUrl("profile.html");
       return null;
     }
     return user;
@@ -236,7 +242,7 @@
       slot.innerHTML = "";
       if (user) {
         slot.appendChild(createProfileChip({
-          href: "profile.html",
+          href: buildAppUrl("profile.html"),
           label: "Open profile",
           initial,
           name: label
@@ -274,7 +280,7 @@
     if (user) {
       const profileLink = document.createElement("a");
       profileLink.className = "nav-auth-link";
-      profileLink.href = "profile.html";
+      profileLink.href = buildAppUrl("profile.html");
       profileLink.dataset.authMenu = "true";
       profileLink.textContent = "Profile";
       menu.appendChild(profileLink);
@@ -283,14 +289,14 @@
 
     const loginLink = document.createElement("a");
     loginLink.className = "nav-auth-link";
-    loginLink.href = "login.html";
+    loginLink.href = buildAppUrl("login.html");
     loginLink.dataset.authMenu = "true";
     loginLink.textContent = "Login";
     menu.appendChild(loginLink);
 
     const signupLink = document.createElement("a");
     signupLink.className = "nav-auth-link";
-    signupLink.href = "signup.html";
+    signupLink.href = buildAppUrl("signup.html");
     signupLink.dataset.authMenu = "true";
     signupLink.textContent = "Sign Up";
     menu.appendChild(signupLink);
@@ -310,8 +316,8 @@
       title.textContent = "Ready to start with Altarix?";
       copy.textContent = "Create your account, log in, and manage your profile.";
       actions.innerHTML = `
-        <a class="btn btn-primary" href="login.html">Login</a>
-        <a class="btn btn-ghost" href="signup.html">Sign Up</a>
+        <a class="btn btn-primary" href="${buildAppUrl("login.html")}">Login</a>
+        <a class="btn btn-ghost" href="${buildAppUrl("signup.html")}">Sign Up</a>
       `;
       return;
     }
@@ -319,7 +325,7 @@
     title.textContent = `Welcome back, ${user.name || "Altarix user"}.`;
     copy.textContent = "Open your profile and keep your account up to date.";
     actions.innerHTML = `
-      <a class="btn btn-primary" href="profile.html">Go to Profile</a>
+      <a class="btn btn-primary" href="${buildAppUrl("profile.html")}">Go to Profile</a>
       <button class="btn btn-ghost" type="button" data-logout-btn>Logout</button>
     `;
   }
@@ -373,7 +379,7 @@
       }
       clearSession();
       showToast("Logged out.", "info");
-      window.location.href = "login.html";
+      window.location.href = buildAppUrl("login.html");
     });
   }
 
@@ -556,6 +562,7 @@
   window.AltarixWeb = {
     api,
     routes: API_ROUTES,
+    buildAppUrl,
     getToken,
     getUser,
     setSession,

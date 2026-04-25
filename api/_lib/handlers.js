@@ -246,6 +246,25 @@ async function handleMeta(req, res) {
   });
 }
 
+async function handleUpdate(req, res) {
+  if (req.method !== "GET") return methodNotAllowed(res);
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("app_updates")
+    .select("version, download_url, release_notes, is_mandatory")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    return sendJson(res, 500, { error: "Failed to fetch updates." });
+  }
+
+  const latest = data && data.length
+    ? data[0]
+    : { version: "", download_url: "", release_notes: "", is_mandatory: false };
+  return sendJson(res, 200, latest);
+}
+
 async function handleDownloads(req, res) {
   if (req.method !== "GET") return methodNotAllowed(res);
   const downloadsDir = path.join(process.cwd(), "downloads");
@@ -273,6 +292,7 @@ export async function handleApiRequest(req, res, forcedPath = "") {
   try {
     const pathname = cleanApiPath(forcedPath || req.url || "");
     if (pathname === "/api/meta") return handleMeta(req, res);
+    if (pathname === "/api/update") return handleUpdate(req, res);
     if (pathname === "/api/downloads") return handleDownloads(req, res);
     if (pathname === "/api/auth/signup") return handleSignup(req, res);
     if (pathname === "/api/auth/login") return handleLogin(req, res);

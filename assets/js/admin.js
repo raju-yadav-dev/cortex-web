@@ -12,15 +12,16 @@ let allUsers = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = window.AltarixWeb?.getUser?.();
+  const buildAppUrl = window.AltarixWeb?.buildAppUrl || ((path) => path);
 
   if (!user) {
-    window.location.href = "login.html";
+    window.location.href = buildAppUrl("login.html");
     return;
   }
 
   if (user.role !== "admin" || user.accountType !== "admin") {
     window.AltarixWeb.showToast("Admin access required.", "error");
-    window.location.href = "index.html";
+    window.location.href = buildAppUrl("index.html");
     return;
   }
 

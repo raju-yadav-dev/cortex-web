@@ -26,3 +26,20 @@ create index if not exists user_profiles_created_at_idx on public.user_profiles(
 
 -- After creating your first account, promote it manually in Supabase SQL:
 -- update public.user_profiles set role = 'admin' where email = 'you@example.com';
+
+create table if not exists public.app_updates (
+  id uuid primary key default gen_random_uuid(),
+  version text not null,
+  download_url text not null,
+  release_notes text,
+  is_mandatory boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists app_updates_created_at_idx on public.app_updates(created_at desc);
+
+alter table public.app_updates enable row level security;
+
+create policy "Allow read latest update"
+  on public.app_updates for select
+  using (true);
