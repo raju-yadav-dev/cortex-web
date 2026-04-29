@@ -8,7 +8,7 @@ import {
   normalizeUsername,
   toPublicUser
 } from "./supabase.js";
-import { forbidden, methodNotAllowed, readJson, sendJson, unauthorized } from "./http.js";
+import { forbidden, handleOptions, methodNotAllowed, readJson, sendJson, unauthorized } from "./http.js";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -99,6 +99,122 @@ async function handleSignup(req, res) {
   });
 }
 
+async function findLegacyUser(supabase, identifier, password) {
+  const rawIdentifier = String(identifier || "").trim();
+  const rawPassword = String(password || "");
+  if (!rawIdentifier || !rawPassword) return null;
+
+  const candidates = [];
+  if (rawIdentifier.includes("@")) {
+    candidates.push(["email", rawIdentifier]);
+    const normalized = normalizeEmail(rawIdentifier);
+    if (normalized !== rawIdentifier) candidates.push(["email", normalized]);
+  } else {
+    candidates.push(["username", rawIdentifier]);
+    const normalized = normalizeUsername(rawIdentifier);
+    if (normalized !== rawIdentifier) candidates.push(["username", normalized]);
+  }
+
+  for (const [field, value] of candidates) {
+    const legacy = await supabase
+      .from("userdata")
+      .select("*")
+      .eq(field, value)
+      .maybeSingle();
+
+    if (legacy.error) continue;
+    if (legacy.data && String(legacy.data.password || "") === rawPassword) {
+      return legacy.data;
+    }
+  }
+
+  return null;
+}
+
+async function findLegacyAdmin(supabase, identifier, password) {
+  const rawIdentifier = String(identifier || "").trim();
+  const rawPassword = String(password || "");
+  if (!rawIdentifier || !rawPassword) return null;
+
+  const candidates = [rawIdentifier];
+  const normalized = normalizeUsername(rawIdentifier);
+  if (normalized && normalized !== rawIdentifier) {
+    candidates.push(normalized);
+  }
+
+  for (const adminId of candidates) {
+    const legacy = await supabase
+      .from("admindata")
+      .select("*")
+      .eq("admin_id", adminId)
+      .maybeSingle();
+
+    if (legacy.error) continue;
+    if (legacy.data && String(legacy.data.password || "") === rawPassword) {
+      return legacy.data;
+    }
+  }
+
+  return null;
+}
+
+async function migrateLegacyUserLogin(supabase, identifier, password) {
+  const legacyUser = await findLegacyUser(supabase, identifier, password);
+  const legacyAdmin = legacyUser ? null : await findLegacyAdmin(supabase, identifier, password);
+  if (!legacyUser && !legacyAdmin) return null;
+
+  const isAdmin = Boolean(legacyAdmin);
+  const legacyAccount = legacyUser || legacyAdmin;
+  const username = normalizeUsername(
+    isAdmin
+      ? legacyAdmin.admin_id
+      : legacyUser.username || legacyUser.email?.split("@")[0] || "altarix-user"
+  );
+  const email = isAdmin
+    ? normalizeEmail(`${username || "admin"}@admin.altarix.app`)
+    : normalizeEmail(legacyUser.email);
+  const name = String(legacyAccount.name || username || "Altarix User").trim();
+  if (!isValidEmail(email)) {
+    return { error: "Legacy account is missing a valid email address." };
+  }
+
+  const created = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { name, username }
+  });
+  if (created.error || !created.data?.user) {
+    return { error: created.error?.message || "Unable to upgrade legacy account." };
+  }
+
+  const now = new Date().toISOString();
+  const profilePayload = {
+    id: created.data.user.id,
+    name,
+    username,
+    email,
+    role: isAdmin ? "admin" : "user",
+    bio: "",
+    last_login_at: now
+  };
+  const inserted = await supabase.from("user_profiles").insert(profilePayload).select("*").single();
+  if (inserted.error) {
+    await supabase.auth.admin.deleteUser(created.data.user.id);
+    return { error: inserted.error.message };
+  }
+
+  const session = await supabase.auth.signInWithPassword({ email, password });
+  if (session.error || !session.data?.session?.access_token) {
+    return { error: session.error?.message || "Unable to start upgraded account session." };
+  }
+
+  return {
+    token: session.data.session.access_token,
+    user: toPublicUser(inserted.data, session.data.user)
+  };
+}
+
 async function handleLogin(req, res) {
   if (req.method !== "POST") return methodNotAllowed(res);
   const body = await readJson(req);
@@ -117,14 +233,18 @@ async function handleLogin(req, res) {
       .eq("username", normalizeUsername(identifier))
       .maybeSingle();
     if (profileLookup.error || !profileLookup.data?.email) {
-      return sendJson(res, 401, { error: "Invalid credentials." });
+      const migrated = await migrateLegacyUserLogin(supabase, identifier, password);
+      if (migrated?.token && migrated.user) return sendJson(res, 200, migrated);
+      return sendJson(res, 401, { error: migrated?.error || "Invalid credentials." });
     }
     email = profileLookup.data.email;
   }
 
   const session = await supabase.auth.signInWithPassword({ email, password });
   if (session.error || !session.data?.user) {
-    return sendJson(res, 401, { error: "Invalid credentials." });
+    const migrated = await migrateLegacyUserLogin(supabase, identifier, password);
+    if (migrated?.token && migrated.user) return sendJson(res, 200, migrated);
+    return sendJson(res, 401, { error: migrated?.error || "Invalid credentials." });
   }
 
   const now = new Date().toISOString();
@@ -299,6 +419,8 @@ async function handleDownloads(req, res) {
 
 export async function handleApiRequest(req, res, forcedPath = "") {
   try {
+    if (req.method === "OPTIONS") return handleOptions(res);
+
     const pathname = cleanApiPath(forcedPath || req.url || "");
     if (pathname === "/api/meta") return handleMeta(req, res);
     if (pathname === "/api/update") return handleUpdate(req, res);

@@ -11,8 +11,22 @@ export async function readJson(req) {
   return JSON.parse(raw);
 }
 
+export function setCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Max-Age", "86400");
+}
+
+export function handleOptions(res) {
+  setCorsHeaders(res);
+  res.statusCode = 204;
+  res.end();
+}
+
 export function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
+  setCorsHeaders(res);
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(JSON.stringify(payload));
 }

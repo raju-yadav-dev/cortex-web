@@ -21,6 +21,22 @@
     return `${APP_BASE_URL}/${trimmed}`;
   }
 
+  function resolveApiUrl(path) {
+    const value = String(path || "");
+    if (/^https?:\/\//i.test(value)) {
+      return value;
+    }
+    if (!value.startsWith("/api/")) {
+      return value;
+    }
+
+    const localPreview = window.location.protocol === "file:"
+      || window.location.hostname === "localhost"
+      || window.location.hostname === "127.0.0.1";
+
+    return localPreview ? `${APP_BASE_URL}${value}` : value;
+  }
+
   function getToken() {
     return localStorage.getItem(TOKEN_KEY) || "";
   }
@@ -152,7 +168,7 @@
       return { response, payload };
     };
 
-    const parsed = await parseResponse(await fetch(path, { ...request, headers }));
+    const parsed = await parseResponse(await fetch(resolveApiUrl(path), { ...request, headers }));
 
     if (!parsed.response.ok) {
       const message = parsed.payload?.error || `Request failed (${parsed.response.status})`;
