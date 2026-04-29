@@ -11,7 +11,7 @@ const supabaseClient = window.supabase?.createClient(
 document.addEventListener("DOMContentLoaded", () => {
   bindPasswordVisibilityButtons();
 
-  const buildAppUrl = window.AltarixWeb?.buildAppUrl || ((path) => path);
+  const buildAppUrl = resolveBuildAppUrl();
   preserveDesktopRedirectLinks(buildAppUrl);
 
   const page = document.body.dataset.page || "";
@@ -44,9 +44,14 @@ function bindPasswordVisibilityButtons() {
   });
 }
 
+function resolveBuildAppUrl() {
+  return window.AltarixWeb?.buildAppUrl || ((path) => path);
+}
+
 function setupLogin() {
   const form = document.getElementById("loginForm");
   if (!form) return;
+  const buildAppUrl = resolveBuildAppUrl();
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -106,6 +111,7 @@ function setupLogin() {
 function setupSignup() {
   const form = document.getElementById("signupForm");
   if (!form) return;
+  const buildAppUrl = resolveBuildAppUrl();
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -383,7 +389,7 @@ function setupForgotPassword() {
       window.AltarixWeb.showToast("Password updated. Please login.", "success");
       form.reset();
       setTimeout(() => {
-        window.location.href = (window.AltarixWeb?.buildAppUrl || ((path) => path))("login.html");
+        window.location.href = resolveBuildAppUrl()("login.html");
       }, 600);
     } catch (error) {
       window.AltarixWeb.showToast(error.message, "error");
