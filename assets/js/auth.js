@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindPasswordVisibilityButtons();
 
   const buildAppUrl = window.AltarixWeb?.buildAppUrl || ((path) => path);
+  preserveDesktopRedirectLinks(buildAppUrl);
 
   const page = document.body.dataset.page || "";
   if (page === "login") {
@@ -69,19 +70,24 @@ function setupLogin() {
     }
 
     try {
-      ensureSupabaseReady();
+      // Use server API to authenticate and receive a real token + user
+      const route = window.AltarixWeb?.routes?.login || "/api/auth/login";
+      const payload = await window.AltarixWeb.api(route, {
+        method: "POST",
+        body: { identifier, password }
+      });
 
-      const user = await getLoginAccount(identifier, password);
-
-      if (!user) {
-        throw new Error("Invalid login ID or password.");
+      if (!payload || !payload.token || !payload.user) {
+        throw new Error(payload?.error || "Invalid login response.");
       }
 
-      const safeUser = removePassword(user);
-      localStorage.setItem("Altarix_user", JSON.stringify(safeUser));
-      localStorage.setItem("Altarix_token", "supabase-table-login");
-      showMessage("Login successful.", "success");
-      window.location.href = safeUser.accountType === "admin"
+      // Persist real session and redirect
+      window.AltarixWeb.setSession(payload.token, payload.user);
+      showMessage(getDesktopRedirectUrl() ? "Login successful. Returning to Altarix app." : "Login successful.", "success");
+      if (completeDesktopRedirect(payload.token)) {
+        return;
+      }
+      window.location.href = payload.user.role === "admin"
         ? buildAppUrl("admin.html")
         : buildAppUrl("index.html");
     } catch (error) {
@@ -136,25 +142,28 @@ function setupSignup() {
     }
 
     try {
-      ensureSupabaseReady();
+      // Use server API signup flow so server issues proper tokens and profile
+      const route = window.AltarixWeb?.routes?.signup || "/api/auth/signup";
+      const result = await window.AltarixWeb.api(route, {
+        method: "POST",
+        body: payload
+      });
 
-      const { error } = await supabaseClient.from(USERDATA_TABLE).insert([
-        {
-          name: payload.name,
-          username: payload.username,
-          email: payload.email,
-          password: payload.password
+      // Server may return token+user or simply a success message. If token present, set session.
+      if (result?.token && result?.user) {
+        window.AltarixWeb.setSession(result.token, result.user);
+        showMessage(getDesktopRedirectUrl() ? "Account created. Returning to Altarix app." : "Account created and signed in.", "success");
+        if (completeDesktopRedirect(result.token)) {
+          return;
         }
-      ]);
-
-      if (error) {
-        throw error;
+        setTimeout(() => { window.location.href = buildAppUrl("index.html"); }, 600);
+        return;
       }
 
       showMessage("Account created successfully. Please login.", "success");
       form.reset();
       setTimeout(() => {
-        window.location.href = buildAppUrl("login.html");
+        window.location.href = withDesktopRedirect(buildAppUrl("login.html"));
       }, 800);
     } catch (error) {
       console.log("Signup error:", error);
@@ -263,6 +272,78 @@ function showMessage(message, type = "info") {
   messageBox.textContent = message;
   document.body.appendChild(messageBox);
   setTimeout(() => messageBox.remove(), 2800);
+}
+
+function getDesktopRedirectUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const rawRedirect = params.get("redirect") || "";
+  if (!rawRedirect) return "";
+
+  try {
+    const url = new URL(rawRedirect);
+    const loopbackHost = url.hostname === "localhost"
+      || url.hostname === "127.0.0.1"
+      || url.hostname === "::1"
+      || url.hostname === "[::1]";
+    if (url.protocol !== "http:" || !loopbackHost || url.pathname !== "/oauth-callback") {
+      return "";
+    }
+    return url.toString();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function appendQuery(urlString, values) {
+  const url = new URL(urlString, window.location.href);
+  Object.entries(values).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value) !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  return url.toString();
+}
+
+function completeDesktopRedirect(token) {
+  const redirectUrl = getDesktopRedirectUrl();
+  if (!redirectUrl || !token) {
+    return false;
+  }
+  window.location.href = appendQuery(redirectUrl, { token });
+  return true;
+}
+
+function withDesktopRedirect(url) {
+  const redirectUrl = getDesktopRedirectUrl();
+  if (!redirectUrl) {
+    return url;
+  }
+  return appendQuery(url, { redirect: redirectUrl });
+}
+
+function preserveDesktopRedirectLinks(buildAppUrl) {
+  const redirectUrl = getDesktopRedirectUrl();
+  if (!redirectUrl) {
+    return;
+  }
+
+  const authPages = new Set(["login.html", "signup.html", "forgot-password.html"]);
+  document.querySelectorAll("a[href]").forEach((link) => {
+    const href = link.getAttribute("href") || "";
+    let url;
+    try {
+      url = new URL(href, window.location.href);
+    } catch (_error) {
+      return;
+    }
+
+    const pageName = url.pathname.split("/").pop();
+    if (!authPages.has(pageName)) {
+      return;
+    }
+
+    link.href = withDesktopRedirect(buildAppUrl(pageName));
+  });
 }
 
 function setupForgotPassword() {
