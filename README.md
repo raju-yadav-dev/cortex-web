@@ -5,13 +5,14 @@ This is the deploy-ready version of the `Altarix-site` frontend. It keeps the sa
 ## Setup
 
 1. Create a Supabase project.
-2. Run `supabase-schema.sql` in the Supabase SQL editor.
+2. Run `supabase-schema.sql` and `supabase-userdata-schema.sql` in the Supabase SQL editor.
 3. Add your Supabase URL and anon key in `assets/js/auth.js`.
 4. Deploy this folder to your static hosting provider.
-5. Sign up once, then promote your account:
+5. Create your first admin account by inserting into `admindata`:
 
 ```sql
-update public.user_profiles set role = 'admin' where email = 'you@example.com';
+insert into admindata (admin_id, name, password)
+values ('admin001', 'Admin', 'admin123');
 ```
 
 Required environment variables:

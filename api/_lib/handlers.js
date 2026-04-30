@@ -60,159 +60,59 @@ async function handleSignup(req, res) {
 
   const supabase = getSupabaseAdmin();
   const duplicate = await supabase
-    .from("user_profiles")
+    .from("userdata")
     .select("id,email,username")
-    .or(`email.eq.${email},username.eq.${username}`)
+    .or(`email.ilike.${email},username.ilike.${username}`)
     .limit(1);
   if (duplicate.data?.length) {
-    const field = duplicate.data[0].email === email ? "Email" : "Username";
+    const field = normalizeEmail(duplicate.data[0].email) === email ? "Email" : "Username";
     return sendJson(res, 409, { error: `${field} already exists.` });
   }
 
-  const created = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { name, username }
-  });
-  if (created.error) return sendJson(res, 400, { error: created.error.message });
+  const inserted = await supabase
+    .from("userdata")
+    .insert({ name, username, email, password })
+    .select("*")
+    .single();
+  if (inserted.error) return sendJson(res, 400, { error: inserted.error.message });
 
-  const profilePayload = {
-    id: created.data.user.id,
-    name,
-    username,
-    email,
-    role: "user",
-    bio: ""
-  };
-  const inserted = await supabase.from("user_profiles").insert(profilePayload).select("*").single();
-  if (inserted.error) {
-    await supabase.auth.admin.deleteUser(created.data.user.id);
-    return sendJson(res, 400, { error: inserted.error.message });
-  }
-
-  const session = await supabase.auth.signInWithPassword({ email, password });
-  if (session.error) return sendJson(res, 201, { token: "", user: toPublicUser(inserted.data, created.data.user) });
   return sendJson(res, 201, {
-    token: session.data.session.access_token,
-    user: toPublicUser(inserted.data, session.data.user)
+    token: inserted.data.id,
+    user: toPublicUser(inserted.data)
   });
 }
-
-async function findLegacyUser(supabase, identifier, password) {
+async function findUserByIdentifier(supabase, identifier) {
   const rawIdentifier = String(identifier || "").trim();
-  const rawPassword = String(password || "");
-  if (!rawIdentifier || !rawPassword) return null;
+  if (!rawIdentifier) return null;
 
-  const candidates = [];
-  if (rawIdentifier.includes("@")) {
-    candidates.push(["email", rawIdentifier]);
-    const normalized = normalizeEmail(rawIdentifier);
-    if (normalized !== rawIdentifier) candidates.push(["email", normalized]);
-  } else {
-    candidates.push(["username", rawIdentifier]);
-    const normalized = normalizeUsername(rawIdentifier);
-    if (normalized !== rawIdentifier) candidates.push(["username", normalized]);
-  }
+  const field = rawIdentifier.includes("@") ? "email" : "username";
+  const value = rawIdentifier.includes("@")
+    ? normalizeEmail(rawIdentifier)
+    : normalizeUsername(rawIdentifier);
 
-  for (const [field, value] of candidates) {
-    const legacy = await supabase
-      .from("userdata")
-      .select("*")
-      .eq(field, value)
-      .maybeSingle();
+  const { data } = await supabase
+    .from("userdata")
+    .select("*")
+    .ilike(field, value)
+    .maybeSingle();
 
-    if (legacy.error) continue;
-    if (legacy.data && String(legacy.data.password || "") === rawPassword) {
-      return legacy.data;
-    }
-  }
-
-  return null;
+  return data || null;
 }
 
-async function findLegacyAdmin(supabase, identifier, password) {
+async function findAdminByIdentifier(supabase, identifier) {
   const rawIdentifier = String(identifier || "").trim();
-  const rawPassword = String(password || "");
-  if (!rawIdentifier || !rawPassword) return null;
+  if (!rawIdentifier || rawIdentifier.includes("@")) return null;
 
-  const candidates = [rawIdentifier];
-  const normalized = normalizeUsername(rawIdentifier);
-  if (normalized && normalized !== rawIdentifier) {
-    candidates.push(normalized);
-  }
+  const value = normalizeUsername(rawIdentifier);
+  if (!value) return null;
 
-  for (const adminId of candidates) {
-    const legacy = await supabase
-      .from("admindata")
-      .select("*")
-      .eq("admin_id", adminId)
-      .maybeSingle();
+  const { data } = await supabase
+    .from("admindata")
+    .select("*")
+    .ilike("admin_id", value)
+    .maybeSingle();
 
-    if (legacy.error) continue;
-    if (legacy.data && String(legacy.data.password || "") === rawPassword) {
-      return legacy.data;
-    }
-  }
-
-  return null;
-}
-
-async function migrateLegacyUserLogin(supabase, identifier, password) {
-  const legacyUser = await findLegacyUser(supabase, identifier, password);
-  const legacyAdmin = legacyUser ? null : await findLegacyAdmin(supabase, identifier, password);
-  if (!legacyUser && !legacyAdmin) return null;
-
-  const isAdmin = Boolean(legacyAdmin);
-  const legacyAccount = legacyUser || legacyAdmin;
-  const username = normalizeUsername(
-    isAdmin
-      ? legacyAdmin.admin_id
-      : legacyUser.username || legacyUser.email?.split("@")[0] || "altarix-user"
-  );
-  const email = isAdmin
-    ? normalizeEmail(`${username || "admin"}@admin.altarix.app`)
-    : normalizeEmail(legacyUser.email);
-  const name = String(legacyAccount.name || username || "Altarix User").trim();
-  if (!isValidEmail(email)) {
-    return { error: "Legacy account is missing a valid email address." };
-  }
-
-  const created = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { name, username }
-  });
-  if (created.error || !created.data?.user) {
-    return { error: created.error?.message || "Unable to upgrade legacy account." };
-  }
-
-  const now = new Date().toISOString();
-  const profilePayload = {
-    id: created.data.user.id,
-    name,
-    username,
-    email,
-    role: isAdmin ? "admin" : "user",
-    bio: "",
-    last_login_at: now
-  };
-  const inserted = await supabase.from("user_profiles").insert(profilePayload).select("*").single();
-  if (inserted.error) {
-    await supabase.auth.admin.deleteUser(created.data.user.id);
-    return { error: inserted.error.message };
-  }
-
-  const session = await supabase.auth.signInWithPassword({ email, password });
-  if (session.error || !session.data?.session?.access_token) {
-    return { error: session.error?.message || "Unable to start upgraded account session." };
-  }
-
-  return {
-    token: session.data.session.access_token,
-    user: toPublicUser(inserted.data, session.data.user)
-  };
+  return data || null;
 }
 
 async function handleLogin(req, res) {
@@ -225,41 +125,23 @@ async function handleLogin(req, res) {
   }
 
   const supabase = getSupabaseAdmin();
-  let email = normalizeEmail(identifier);
-  if (!identifier.includes("@")) {
-    const profileLookup = await supabase
-      .from("user_profiles")
-      .select("email")
-      .eq("username", normalizeUsername(identifier))
-      .maybeSingle();
-    if (profileLookup.error || !profileLookup.data?.email) {
-      const migrated = await migrateLegacyUserLogin(supabase, identifier, password);
-      if (migrated?.token && migrated.user) return sendJson(res, 200, migrated);
-      return sendJson(res, 401, { error: migrated?.error || "Invalid credentials." });
-    }
-    email = profileLookup.data.email;
+  const userRecord = await findUserByIdentifier(supabase, identifier);
+  if (userRecord && String(userRecord.password || "") === password) {
+    return sendJson(res, 200, {
+      token: userRecord.id,
+      user: toPublicUser(userRecord)
+    });
   }
 
-  const session = await supabase.auth.signInWithPassword({ email, password });
-  if (session.error || !session.data?.user) {
-    const migrated = await migrateLegacyUserLogin(supabase, identifier, password);
-    if (migrated?.token && migrated.user) return sendJson(res, 200, migrated);
-    return sendJson(res, 401, { error: migrated?.error || "Invalid credentials." });
+  const adminRecord = await findAdminByIdentifier(supabase, identifier);
+  if (adminRecord && String(adminRecord.password || "") === password) {
+    return sendJson(res, 200, {
+      token: adminRecord.admin_id,
+      user: toPublicUser(adminRecord, { accountType: "admin", role: "admin" })
+    });
   }
 
-  const now = new Date().toISOString();
-  await supabase.from("user_profiles").update({ last_login_at: now }).eq("id", session.data.user.id);
-  const profile = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("id", session.data.user.id)
-    .maybeSingle();
-  if (profile.error || !profile.data) return sendJson(res, 401, { error: "Profile not found." });
-
-  return sendJson(res, 200, {
-    token: session.data.session.access_token,
-    user: toPublicUser({ ...profile.data, last_login_at: now }, session.data.user)
-  });
+  return sendJson(res, 401, { error: "Invalid credentials." });
 }
 
 async function handleForgotPassword(req, res) {
@@ -272,10 +154,10 @@ async function handleForgotPassword(req, res) {
   if (passwordError) return sendJson(res, 400, { error: passwordError });
 
   const supabase = getSupabaseAdmin();
-  const profile = await supabase.from("user_profiles").select("id").eq("email", email).maybeSingle();
+  const profile = await supabase.from("userdata").select("id").ilike("email", email).maybeSingle();
   if (profile.error || !profile.data) return sendJson(res, 404, { error: "User not found for this email." });
 
-  const updated = await supabase.auth.admin.updateUserById(profile.data.id, { password });
+  const updated = await supabase.from("userdata").update({ password }).eq("id", profile.data.id);
   if (updated.error) return sendJson(res, 400, { error: updated.error.message });
   return sendJson(res, 200, { message: "Password updated." });
 }
@@ -302,26 +184,36 @@ async function handleProfile(req, res) {
   const body = await readJson(req);
   const name = String(body.name || "").trim();
   const username = normalizeUsername(body.username);
-  const bio = String(body.bio || "").trim();
   if (name.length < 2) return sendJson(res, 400, { error: "Name must be at least 2 characters." });
   if (!username) return sendJson(res, 400, { error: "Username is required." });
 
+  if (current.user.accountType === "admin") {
+    const updated = await current.supabase
+      .from("admindata")
+      .update({ name })
+      .eq("admin_id", current.user.id)
+      .select("*")
+      .single();
+    if (updated.error) return sendJson(res, 400, { error: updated.error.message });
+    return sendJson(res, 200, { user: toPublicUser(updated.data, { accountType: "admin", role: "admin" }) });
+  }
+
   const duplicate = await current.supabase
-    .from("user_profiles")
+    .from("userdata")
     .select("id")
-    .eq("username", username)
+    .ilike("username", username)
     .neq("id", current.user.id)
     .maybeSingle();
   if (duplicate.data) return sendJson(res, 409, { error: "Username already taken." });
 
   const updated = await current.supabase
-    .from("user_profiles")
-    .update({ name, username, bio, updated_at: new Date().toISOString() })
+    .from("userdata")
+    .update({ name, username })
     .eq("id", current.user.id)
     .select("*")
     .single();
   if (updated.error) return sendJson(res, 400, { error: updated.error.message });
-  return sendJson(res, 200, { user: toPublicUser(updated.data, current.authUser) });
+  return sendJson(res, 200, { user: toPublicUser(updated.data) });
 }
 
 async function handleAdminUsers(req, res, userId = "") {
@@ -331,7 +223,7 @@ async function handleAdminUsers(req, res, userId = "") {
   if (!userId) {
     if (req.method !== "GET") return methodNotAllowed(res);
     const users = await current.supabase
-      .from("user_profiles")
+      .from("userdata")
       .select("*")
       .order("created_at", { ascending: false });
     if (users.error) return sendJson(res, 400, { error: users.error.message });
@@ -341,21 +233,14 @@ async function handleAdminUsers(req, res, userId = "") {
   if (req.method !== "PATCH") return methodNotAllowed(res);
   const body = await readJson(req);
   const role = String(body.role || "").trim().toLowerCase();
-  if (!["admin", "user"].includes(role)) {
+    if (!["admin", "user"].includes(role)) {
     return sendJson(res, 400, { error: "Role must be either admin or user." });
   }
   if (userId === current.user.id && role !== "admin") {
     return sendJson(res, 400, { error: "You cannot remove your own admin role." });
   }
 
-  const updated = await current.supabase
-    .from("user_profiles")
-    .update({ role, updated_at: new Date().toISOString() })
-    .eq("id", userId)
-    .select("*")
-    .single();
-  if (updated.error) return sendJson(res, 400, { error: updated.error.message });
-  return sendJson(res, 200, { user: toPublicUser(updated.data) });
+  return sendJson(res, 400, { error: "Role updates are not supported for userdata records." });
 }
 
 async function handleMeta(req, res) {

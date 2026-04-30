@@ -218,30 +218,16 @@
   }
 
   async function refreshUser() {
-    if (!getToken()) return null;
-    try {
-      const data = await api(API_ROUTES.me, { method: "GET" });
-      if (data?.user) {
-        setUser(data.user);
-        return data.user;
-      }
-      return null;
-    } catch (_error) {
-      clearSession();
-      return null;
-    }
+    return getUser();
   }
 
   async function requireAuth({ adminOnly = false, redirect = buildAppUrl("login.html") } = {}) {
-    let user = getUser();
-    if (!user && getToken()) {
-      user = await refreshUser();
-    }
+    const user = getUser();
     if (!user) {
       window.location.href = redirect;
       return null;
     }
-    if (adminOnly && user.role !== "admin") {
+    if (adminOnly && (user.role !== "admin" || user.accountType !== "admin")) {
       showToast("Admin access required.", "error");
       window.location.href = buildAppUrl("profile.html");
       return null;
@@ -391,11 +377,6 @@
       if (window.AltarixAuth?.logout) {
         await window.AltarixAuth.logout(buildAppUrl);
         return;
-      }
-      try {
-        await api(API_ROUTES.logout, { method: "POST" });
-      } catch (_error) {
-        // Intentionally ignored to allow local logout fallback.
       }
       clearSession();
       showToast("Logged out.", "info");

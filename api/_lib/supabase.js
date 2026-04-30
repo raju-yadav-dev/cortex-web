@@ -16,18 +16,25 @@ export function getSupabaseAdmin() {
   });
 }
 
-export function toPublicUser(profile, authUser = null) {
-  if (!profile) return null;
+export function toPublicUser(record, options = {}) {
+  if (!record) return null;
+  const accountType = options.accountType
+    || record.accountType
+    || (record.admin_id ? "admin" : "user");
+  const role = options.role || record.role || (accountType === "admin" ? "admin" : "user");
+  const id = record.id || record.admin_id || "";
+
   return {
-    id: profile.id,
-    name: profile.name || "",
-    username: profile.username || "",
-    email: profile.email || authUser?.email || "",
-    role: profile.role || "user",
-    bio: profile.bio || "",
-    createdAt: profile.created_at || authUser?.created_at || null,
-    updatedAt: profile.updated_at || null,
-    lastLoginAt: profile.last_login_at || authUser?.last_sign_in_at || null
+    id,
+    name: record.name || (accountType === "admin" ? "Admin" : ""),
+    username: record.username || record.admin_id || "",
+    email: record.email || "",
+    role,
+    accountType,
+    bio: record.bio || "",
+    createdAt: record.created_at || null,
+    updatedAt: record.updated_at || null,
+    lastLoginAt: record.last_login_at || null
   };
 }
 
@@ -54,15 +61,24 @@ export async function getCurrentUserFromRequest(req) {
   if (!match) return null;
 
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.auth.getUser(match[1]);
-  if (error || !data?.user) return null;
+  const token = match[1];
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
+  const { data: userRecord } = await supabase
+    .from("userdata")
     .select("*")
-    .eq("id", data.user.id)
+    .eq("id", token)
     .maybeSingle();
 
-  if (!profile) return null;
-  return { supabase, authUser: data.user, profile, user: toPublicUser(profile, data.user) };
+  if (userRecord) {
+    return { supabase, profile: userRecord, user: toPublicUser(userRecord) };
+  }
+
+  const { data: adminRecord } = await supabase
+    .from("admindata")
+    .select("*")
+    .eq("admin_id", token)
+    .maybeSingle();
+
+  if (!adminRecord) return null;
+  return { supabase, profile: adminRecord, user: toPublicUser(adminRecord, { accountType: "admin", role: "admin" }) };
 }
