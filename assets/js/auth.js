@@ -1,7 +1,6 @@
 const SUPABASE_URL = "https://tfdszotngmkrixzxhxgt.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_qKd2iPnUnFJDW1bDBU8M1A_7wzR7Iwb";
-const USERDATA_TABLE = "userdata";
-const ADMINDATA_TABLE = "admindata";
+const USER_PROFILES_TABLE = "user_profiles";
 
 const supabaseClient = window.supabase?.createClient(
   SUPABASE_URL,
@@ -13,17 +12,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const buildAppUrl = resolveBuildAppUrl();
   preserveDesktopRedirectLinks(buildAppUrl);
+  initAuthStateHandling(buildAppUrl);
 
-  const page = document.body.dataset.page || "";
+  const page = getCurrentPage();
   if (page === "login") {
-    setupLogin();
+    setupLogin(buildAppUrl);
   }
   if (page === "signup") {
-    setupSignup();
+    setupSignup(buildAppUrl);
   }
   if (page === "forgot-password") {
-    setupForgotPassword();
+    setupForgotPassword(buildAppUrl);
   }
+
+  checkExistingSession(page, buildAppUrl);
 });
 
 function bindPasswordVisibilityButtons() {
@@ -48,10 +50,9 @@ function resolveBuildAppUrl() {
   return window.AltarixWeb?.buildAppUrl || ((path) => path);
 }
 
-function setupLogin() {
+function setupLogin(buildAppUrl) {
   const form = document.getElementById("loginForm");
   if (!form) return;
-  const buildAppUrl = resolveBuildAppUrl();
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -63,7 +64,7 @@ function setupLogin() {
     const identifier = String(data.get("identifier") || "").trim();
     const password = String(data.get("password") || "");
     if (!identifier || !password) {
-      showMessage("Email/username and password are required.", "error");
+      showMessage("Email and password are required.", "error");
       return;
     }
 
@@ -75,26 +76,29 @@ function setupLogin() {
     }
 
     try {
-      // Use server API to authenticate and receive a real token + user
-      const route = window.AltarixWeb?.routes?.login || "/api/auth/login";
-      const payload = await window.AltarixWeb.api(route, {
-        method: "POST",
-        body: { identifier, password }
-      });
-
-      if (!payload || !payload.token || !payload.user) {
-        throw new Error(payload?.error || "Invalid login response.");
+      ensureSupabaseReady();
+      const email = await resolveIdentifierToEmail(identifier);
+      if (!email) {
+        throw new Error("Please enter a valid email address.");
       }
 
-      // Persist real session and redirect
-      window.AltarixWeb.setSession(payload.token, payload.user);
+      const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) {
+        throw error;
+      }
+      if (!authData?.session || !authData.user) {
+        throw new Error("Login failed. Please try again.");
+      }
+
+      await syncSessionWithProfile(authData.session);
       showMessage(getDesktopRedirectUrl() ? "Login successful. Returning to Altarix app." : "Login successful.", "success");
-      if (completeDesktopRedirect(payload.token)) {
+      if (completeDesktopRedirect(authData.session.access_token)) {
         return;
       }
-      window.location.href = payload.user.role === "admin"
-        ? buildAppUrl("admin.html")
-        : buildAppUrl("index.html");
+      window.location.href = buildAppUrl("profile.html");
     } catch (error) {
       console.log("Login error:", error);
       showMessage(error.message || "Login failed. Please try again.", "error");
@@ -108,10 +112,9 @@ function setupLogin() {
   });
 }
 
-function setupSignup() {
+function setupSignup(buildAppUrl) {
   const form = document.getElementById("signupForm");
   if (!form) return;
-  const buildAppUrl = resolveBuildAppUrl();
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -123,7 +126,7 @@ function setupSignup() {
     const payload = {
       name: String(data.get("name") || "").trim(),
       username: String(data.get("username") || "").trim(),
-      email: String(data.get("email") || "").trim(),
+      email: normalizeEmail(data.get("email")),
       password: String(data.get("password") || ""),
       confirmPassword: String(data.get("confirmPassword") || "")
     };
@@ -148,29 +151,37 @@ function setupSignup() {
     }
 
     try {
-      // Use server API signup flow so server issues proper tokens and profile
-      const route = window.AltarixWeb?.routes?.signup || "/api/auth/signup";
-      const result = await window.AltarixWeb.api(route, {
-        method: "POST",
-        body: payload
+      ensureSupabaseReady();
+      const { data: signUpData, error } = await supabaseClient.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          data: {
+            name: payload.name,
+            username: normalizeUsername(payload.username)
+          }
+        }
       });
+      if (error) {
+        throw error;
+      }
 
-      // Server may return token+user or simply a success message. If token present, set session.
-      if (result?.token && result?.user) {
-        window.AltarixWeb.setSession(result.token, result.user);
+      if (signUpData?.session?.user) {
+        await upsertUserProfile(signUpData.session.user, payload);
+        await syncSessionWithProfile(signUpData.session);
         showMessage(getDesktopRedirectUrl() ? "Account created. Returning to Altarix app." : "Account created and signed in.", "success");
-        if (completeDesktopRedirect(result.token)) {
+        if (completeDesktopRedirect(signUpData.session.access_token)) {
           return;
         }
-        setTimeout(() => { window.location.href = buildAppUrl("index.html"); }, 600);
+        window.location.href = buildAppUrl("profile.html");
         return;
       }
 
-      showMessage("Account created successfully. Please login.", "success");
+      showMessage("Account created. Please check your email to confirm, then login.", "success");
       form.reset();
       setTimeout(() => {
         window.location.href = withDesktopRedirect(buildAppUrl("login.html"));
-      }, 800);
+      }, 900);
     } catch (error) {
       console.log("Signup error:", error);
       showMessage(error.message || "Signup failed. Please try again.", "error");
@@ -193,77 +204,157 @@ function ensureSupabaseReady() {
   }
 }
 
-async function getLoginAccount(identifier, password) {
-  const admin = await getAdminById(identifier);
-  if (admin && admin.password === password) {
-    return admin;
-  }
-
-  const user = await getUserByIdentifier(identifier);
-  if (user && user.password === password) {
-    return user;
-  }
-
-  return null;
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
-async function getUserByIdentifier(identifier) {
-  const user = await findRecordByIdentifier(USERDATA_TABLE, identifier);
+function normalizeUsername(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getCurrentPage() {
+  return document.body?.dataset?.page || "";
+}
+
+async function resolveIdentifierToEmail(identifier) {
+  const trimmed = String(identifier || "").trim();
+  if (!trimmed) return "";
+  if (trimmed.includes("@")) return normalizeEmail(trimmed);
+
+  const username = normalizeUsername(trimmed);
+  if (!username) return "";
+
+  const { data, error } = await supabaseClient
+    .from(USER_PROFILES_TABLE)
+    .select("email")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (error || !data?.email) {
+    return "";
+  }
+
+  return normalizeEmail(data.email);
+}
+
+async function fetchUserProfile(userId) {
+  const { data, error } = await supabaseClient
+    .from(USER_PROFILES_TABLE)
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  return data || null;
+}
+
+async function upsertUserProfile(user, payload) {
+  const profile = {
+    id: user.id,
+    name: String(payload.name || "").trim(),
+    username: normalizeUsername(payload.username),
+    email: normalizeEmail(payload.email),
+    role: "user",
+    bio: ""
+  };
+
+  const { error } = await supabaseClient
+    .from(USER_PROFILES_TABLE)
+    .upsert(profile, { onConflict: "id" });
+
+  if (error) {
+    console.warn("Profile upsert failed:", error.message || error);
+  }
+}
+
+function buildUserPayload(authUser, profile) {
+  if (!authUser) return null;
+  const safeProfile = profile || {};
+  return {
+    id: authUser.id,
+    email: authUser.email || safeProfile.email || "",
+    name: safeProfile.name || authUser.user_metadata?.name || "",
+    username: safeProfile.username || authUser.user_metadata?.username || "",
+    role: safeProfile.role || "user",
+    bio: safeProfile.bio || "",
+    created_at: safeProfile.created_at,
+    updated_at: safeProfile.updated_at
+  };
+}
+
+function setLocalSession(token, user) {
+  if (window.AltarixWeb?.setSession) {
+    window.AltarixWeb.setSession(token, user);
+    return;
+  }
+  localStorage.setItem("Altarix_token", token || "");
   if (user) {
-    return { ...user, role: "user", accountType: "user" };
+    localStorage.setItem("Altarix_user", JSON.stringify(user));
   }
-
-  return null;
 }
 
-async function getAdminById(adminId) {
-  const adminResult = await supabaseClient
-    .from(ADMINDATA_TABLE)
-    .select("*")
-    .eq("admin_id", adminId)
-    .maybeSingle();
-
-  if (adminResult.error) {
-    throw adminResult.error;
+function clearLocalSession() {
+  if (window.AltarixWeb?.clearSession) {
+    window.AltarixWeb.clearSession();
+    return;
   }
-  if (!adminResult.data) {
-    return null;
-  }
-
-  return { ...adminResult.data, role: "admin", accountType: "admin" };
+  localStorage.removeItem("Altarix_token");
+  localStorage.removeItem("Altarix_user");
 }
 
-async function findRecordByIdentifier(tableName, identifier) {
-  const emailResult = await supabaseClient
-    .from(tableName)
-    .select("*")
-    .eq("email", identifier)
-    .maybeSingle();
-
-  if (emailResult.error) {
-    throw emailResult.error;
+async function syncSessionWithProfile(session) {
+  if (!session?.user) return null;
+  let profile = null;
+  try {
+    profile = await fetchUserProfile(session.user.id);
+  } catch (error) {
+    console.warn("Profile fetch failed:", error.message || error);
   }
-  if (emailResult.data) {
-    return emailResult.data;
-  }
-
-  const usernameResult = await supabaseClient
-    .from(tableName)
-    .select("*")
-    .eq("username", identifier)
-    .maybeSingle();
-
-  if (usernameResult.error) {
-    throw usernameResult.error;
-  }
-
-  return usernameResult.data;
+  const user = buildUserPayload(session.user, profile);
+  setLocalSession(session.access_token, user);
+  return user;
 }
 
-function removePassword(user) {
-  const safeUser = { ...user };
-  delete safeUser.password;
-  return safeUser;
+async function checkExistingSession(page, buildAppUrl) {
+  try {
+    ensureSupabaseReady();
+  } catch (error) {
+    showMessage(error.message, "error");
+    return;
+  }
+
+  const { data } = await supabaseClient.auth.getSession();
+  const session = data?.session;
+  if (!session?.user) return;
+
+  await syncSessionWithProfile(session);
+  if (page === "login" || page === "signup") {
+    if (completeDesktopRedirect(session.access_token)) return;
+    window.location.href = buildAppUrl("profile.html");
+  }
+}
+
+function initAuthStateHandling(buildAppUrl) {
+  try {
+    ensureSupabaseReady();
+  } catch (_error) {
+    return;
+  }
+
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT" || !session) {
+      clearLocalSession();
+      return;
+    }
+    await syncSessionWithProfile(session);
+    if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED")
+      && (getCurrentPage() === "login" || getCurrentPage() === "signup")) {
+      if (completeDesktopRedirect(session.access_token)) return;
+      window.location.href = buildAppUrl("profile.html");
+    }
+  });
 }
 
 function showMessage(message, type = "info") {
@@ -352,10 +443,9 @@ function preserveDesktopRedirectLinks(buildAppUrl) {
   });
 }
 
-function setupForgotPassword() {
+function setupForgotPassword(buildAppUrl) {
   const form = document.getElementById("forgotForm");
   if (!form) return;
-  const forgotRoute = window.AltarixWeb?.routes?.forgotPassword || "/api/auth/forgot-password";
   const submitButton = form.querySelector('button[type="submit"]');
   let isSubmitting = false;
 
@@ -364,13 +454,9 @@ function setupForgotPassword() {
     if (isSubmitting) return;
 
     const data = new FormData(form);
-    const payload = {
-      email: String(data.get("email") || "").trim(),
-      newPassword: String(data.get("newPassword") || ""),
-      confirmPassword: String(data.get("confirmPassword") || "")
-    };
-    if (!payload.email || !payload.newPassword || !payload.confirmPassword) {
-      window.AltarixWeb.showToast("Please fill all required fields.", "error");
+    const email = normalizeEmail(data.get("email"));
+    if (!email) {
+      showMessage("Please enter your email.", "error");
       return;
     }
 
@@ -378,21 +464,21 @@ function setupForgotPassword() {
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.dataset.defaultLabel = submitButton.textContent || "Reset Password";
-      submitButton.textContent = "Updating password...";
+      submitButton.textContent = "Sending reset link...";
     }
 
     try {
-      await window.AltarixWeb.api(forgotRoute, {
-        method: "POST",
-        body: payload
+      ensureSupabaseReady();
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: buildAppUrl("login.html")
       });
-      window.AltarixWeb.showToast("Password updated. Please login.", "success");
+      if (error) {
+        throw error;
+      }
+      showMessage("Password reset email sent. Please check your inbox.", "success");
       form.reset();
-      setTimeout(() => {
-        window.location.href = resolveBuildAppUrl()("login.html");
-      }, 600);
     } catch (error) {
-      window.AltarixWeb.showToast(error.message, "error");
+      showMessage(error.message || "Unable to send reset email.", "error");
     } finally {
       isSubmitting = false;
       if (submitButton) {
@@ -402,4 +488,21 @@ function setupForgotPassword() {
     }
   });
 }
+
+async function logout(buildAppUrl) {
+  try {
+    ensureSupabaseReady();
+    await supabaseClient.auth.signOut();
+  } catch (_error) {
+    // Ignore sign-out errors to allow local logout fallback.
+  }
+  clearLocalSession();
+  if (buildAppUrl) {
+    window.location.href = buildAppUrl("login.html");
+  }
+}
+
+window.AltarixAuth = {
+  logout
+};
 

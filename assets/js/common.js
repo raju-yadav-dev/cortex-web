@@ -388,6 +388,10 @@
     document.addEventListener("click", async (event) => {
       const target = event.target.closest("[data-logout-btn]");
       if (!target) return;
+      if (window.AltarixAuth?.logout) {
+        await window.AltarixAuth.logout(buildAppUrl);
+        return;
+      }
       try {
         await api(API_ROUTES.logout, { method: "POST" });
       } catch (_error) {
