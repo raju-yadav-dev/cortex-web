@@ -22,7 +22,7 @@
       <aside class="glass admin-sidebar">
         <a class="brand" href="https://altarix.vercel.app/index.html">
           <span class="brand-mark">
-            <img src="assets/icon/Altarix 64x64.png" alt="Altarix icon" />
+            <img src="assets/icon/Altarix-64.png" alt="Altarix icon" />
           </span>
           <span class="brand-text">Application Admin</span>
         </a>
@@ -32,7 +32,7 @@
           <a href="https://altarix.vercel.app/index.html#downloads">Installers</a>
           <a href="https://altarix.vercel.app/index.html#web-future">Web Future</a>
         </nav>
-        <p class="admin-note">New Supabase signup users will appear live in this dashboard table.</p>
+        <p class="admin-note">New users from the userdata table appear here after signup.</p>
       </aside>
 
       <main class="admin-main">
@@ -50,13 +50,24 @@
             <p id="statTotalUsers">0</p>
           </article>
           <article class="glass stat-card">
-            <h3>Admins</h3>
-            <p id="statAdminUsers">0</p>
+            <h3>Banned Users</h3>
+            <p id="statBannedUsers">0</p>
           </article>
           <article class="glass stat-card">
-            <h3>Standard Users</h3>
-            <p id="statNormalUsers">0</p>
+            <h3>Recent Users</h3>
+            <p id="statRecentUsers">0</p>
           </article>
+        </section>
+
+        <section class="glass admin-recent-wrap">
+          <div class="panel-head">
+            <div>
+              <p class="kicker">New Signups</p>
+              <h2>Recently Created Users</h2>
+            </div>
+            <span class="status-badge status-badge-warning">Last 7 days</span>
+          </div>
+          <div id="recentUsersList" class="admin-recent-list"></div>
         </section>
 
         <section class="glass admin-table-wrap">
@@ -68,12 +79,12 @@
             <table class="users-table">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Name</th>
                   <th>Username</th>
                   <th>Email</th>
-                  <th>Role</th>
                   <th>Created</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="userTableBody"></tbody>

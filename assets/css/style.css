@@ -1463,7 +1463,7 @@ body[data-theme="light"] .gradient-text-caret {
 
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 
@@ -1486,6 +1486,21 @@ body[data-theme="light"] .gradient-text-caret {
 
 .admin-table-wrap {
   padding: 16px;
+}
+
+.admin-recent-wrap {
+  padding: 16px;
+}
+
+.admin-recent-list {
+  display: grid;
+  gap: 10px;
+}
+
+.table-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .admin-db-wrap {

@@ -4,6 +4,7 @@ create table if not exists userdata (
   username text not null unique,
   email text not null unique,
   password text not null,
+  ban boolean not null default false,
   created_at timestamptz not null default now()
 );
 

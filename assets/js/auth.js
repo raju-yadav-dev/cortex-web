@@ -79,6 +79,9 @@ function setupLogin(buildAppUrl) {
       ensureSupabaseReady();
 
       const userRecord = await findUserByIdentifier(identifier);
+      if (userRecord && userRecord.ban) {
+        throw new Error("Your account has been banned.");
+      }
       if (userRecord && String(userRecord.password || "") === password) {
         const user = buildLocalUser(userRecord, "user");
         setLocalSession(user.id, user);
@@ -268,8 +271,8 @@ async function findUserByIdentifier(identifier) {
 
 async function findAdminByIdentifier(identifier) {
   const raw = String(identifier || "").trim();
-  if (!raw || raw.includes("@")) return null;
-  const value = normalizeUsername(raw);
+  if (!raw) return null;
+  const value = raw.includes("@") ? raw.toLowerCase() : normalizeUsername(raw);
   if (!value) return null;
 
   const { data, error } = await supabaseClient

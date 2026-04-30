@@ -101,9 +101,11 @@ async function findUserByIdentifier(supabase, identifier) {
 
 async function findAdminByIdentifier(supabase, identifier) {
   const rawIdentifier = String(identifier || "").trim();
-  if (!rawIdentifier || rawIdentifier.includes("@")) return null;
+  if (!rawIdentifier) return null;
 
-  const value = normalizeUsername(rawIdentifier);
+  const value = rawIdentifier.includes("@")
+    ? rawIdentifier.toLowerCase()
+    : normalizeUsername(rawIdentifier);
   if (!value) return null;
 
   const { data } = await supabase
