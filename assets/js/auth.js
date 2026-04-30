@@ -64,7 +64,7 @@ function setupLogin(buildAppUrl) {
     const identifier = String(data.get("identifier") || "").trim();
     const password = String(data.get("password") || "");
     if (!identifier || !password) {
-      showMessage("Email and password are required.", "error");
+      showMessage("Email or username and password are required.", "error");
       return;
     }
 
@@ -76,10 +76,27 @@ function setupLogin(buildAppUrl) {
     }
 
     try {
+      if (window.AltarixWeb?.api) {
+        const response = await window.AltarixWeb.api(window.AltarixWeb.routes?.login || "/api/auth/login", {
+          method: "POST",
+          body: { identifier, password }
+        });
+        if (!response?.token || !response?.user) {
+          throw new Error("Login failed. Please try again.");
+        }
+        setLocalSession(response.token, response.user);
+        showMessage(getDesktopRedirectUrl() ? "Login successful. Returning to Altarix app." : "Login successful.", "success");
+        if (completeDesktopRedirect(response.token)) {
+          return;
+        }
+        window.location.href = buildAppUrl("profile.html");
+        return;
+      }
+
       ensureSupabaseReady();
       const email = await resolveIdentifierToEmail(identifier);
       if (!email) {
-        throw new Error("Please enter a valid email address.");
+        throw new Error("Please enter a valid email address or username.");
       }
 
       const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
@@ -224,17 +241,15 @@ async function resolveIdentifierToEmail(identifier) {
   const username = normalizeUsername(trimmed);
   if (!username) return "";
 
-  const { data, error } = await supabaseClient
-    .from(USER_PROFILES_TABLE)
-    .select("email")
-    .eq("username", username)
-    .maybeSingle();
+  const { data, error } = await supabaseClient.rpc("get_email_for_username", {
+    input_username: username
+  });
 
-  if (error || !data?.email) {
+  if (error || !data) {
     return "";
   }
 
-  return normalizeEmail(data.email);
+  return normalizeEmail(data);
 }
 
 async function fetchUserProfile(userId) {

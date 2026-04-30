@@ -24,6 +24,21 @@ create policy "Users can update own profile"
 create index if not exists user_profiles_role_idx on public.user_profiles(role);
 create index if not exists user_profiles_created_at_idx on public.user_profiles(created_at desc);
 
+create or replace function public.get_email_for_username(input_username text)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select email
+  from public.userdata
+  where username = lower(trim(input_username))
+  limit 1;
+$$;
+
+revoke all on function public.get_email_for_username(text) from public;
+grant execute on function public.get_email_for_username(text) to anon, authenticated;
+
 -- After creating your first account, promote it manually in Supabase SQL:
 -- update public.user_profiles set role = 'admin' where email = 'you@example.com';
 
