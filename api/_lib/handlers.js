@@ -259,8 +259,9 @@ async function handleUpdate(req, res) {
   const { data, error } = await supabase
     .from("app_updates")
     .select("version, download_url, release_notes, is_mandatory, type")
+    .order("version", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(2);
+    .limit(50);
 
   if (error) {
     return sendJson(res, 500, { error: "Failed to fetch updates." });

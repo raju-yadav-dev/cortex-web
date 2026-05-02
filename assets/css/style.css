@@ -507,6 +507,7 @@ main {
   font-family: "Sora", sans-serif;
   font-size: clamp(2rem, 4vw, 3.2rem);
   line-height: 1.12;
+  min-height: 7.5rem;
 }
 
 .gradient-text {
@@ -940,10 +941,16 @@ body[data-theme="light"] .gradient-text-caret {
 
 .downloads-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  grid-template-columns: 1fr;
   gap: 16px;
   padding: 20px;
   align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .downloads-summary {
+    grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  }
 }
 
 .downloads-summary-copy h3 {
@@ -961,6 +968,8 @@ body[data-theme="light"] .gradient-text-caret {
 .downloads-summary-meta {
   display: grid;
   gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .downloads-meta-card {
@@ -1027,6 +1036,93 @@ body[data-theme="light"] .gradient-text-caret {
 
 .downloads-debug-rows li span {
   display: block;
+}
+
+.old-versions {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.old-versions h3 {
+  margin: 0 0 20px;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.2rem, 1.8vw, 1.6rem);
+  color: var(--text-0);
+}
+
+.old-versions-list {
+  display: grid;
+  gap: 12px;
+}
+
+.old-version-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.old-version-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.old-version-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.old-version-number {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-0);
+}
+
+.old-version-date {
+  font-size: 0.8rem;
+  color: var(--text-1);
+}
+
+.old-version-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.old-version-link {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-1);
+  font-size: 0.8rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.old-version-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-0);
+}
+
+@media (max-width: 768px) {
+  .old-version-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .old-version-actions {
+    justify-content: flex-start;
+  }
+}
   overflow-wrap: anywhere;
   opacity: 0.95;
 }

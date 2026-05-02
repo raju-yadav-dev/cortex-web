@@ -527,8 +527,27 @@ async function loadDownloads() {
     };
   };
 
-  const renderDownloads = (version, urls, recommendedKey, releaseNotes, sourceLabel, sourceDownloadUrl, primaryDownloadUrl, debugInfo) => {
+  const renderDownloads = (version, urls, recommendedKey, releaseNotes, sourceLabel, sourceDownloadUrl, primaryDownloadUrl, debugInfo, oldVersions) => {
     const recommended = installers[recommendedKey] || installers.windowsExe;
+    
+    // Group by version and keep only the first record of each version (to avoid duplicates for EXE/MSI)
+    const versionMap = new Map();
+    if (Array.isArray(oldVersions)) {
+      oldVersions.forEach(v => {
+        const ver = String(v?.version || "").trim();
+        if (ver && !versionMap.has(ver)) {
+          versionMap.set(ver, v);
+        }
+      });
+    }
+    
+    // Convert to array and skip the first version (current release)
+    const uniqueVersions = Array.from(versionMap.values());
+    const oldVersionsList = uniqueVersions.slice(1);
+    console.log("All oldVersions from API:", oldVersions);
+    console.log("uniqueVersions after grouping:", uniqueVersions);
+    console.log("oldVersionsList after slice(1):", oldVersionsList);
+    console.log("oldVersionsList.length:", oldVersionsList.length);
     const items = Object.entries(installers)
       .map(([key, item]) => {
         const isRecommended = key === recommendedKey;
@@ -584,6 +603,30 @@ async function loadDownloads() {
     const pickedDeb = String(debugInfo?.picked?.deb || "n/a");
 
     if (summaryHost) {
+      const oldVersionsHtml = oldVersionsList.length ? `
+        <div class="old-versions">
+          <h3>Previous versions</h3>
+          <div class="old-versions-list">
+            ${oldVersionsList.map((v) => {
+              const versionNum = escapeHtml(String(v?.version || "").trim());
+              const downloadUrl = escapeHtml(String(v?.download_url || "").trim());
+              const notes = escapeHtml(String(v?.release_notes || "").trim().split('\n')[0]);
+              return `
+                <div class="old-version-item">
+                  <div class="old-version-info">
+                    <div class="old-version-number">Altarix ${versionNum}</div>
+                    <div class="old-version-date">${notes ? `${notes.substring(0, 50)}...` : 'Previous release'}</div>
+                  </div>
+                  <div class="old-version-actions">
+                    ${downloadUrl ? `<a class="old-version-link" href="${downloadUrl}" download>Download</a>` : '<span class="old-version-link" style="opacity: 0.5;">Unavailable</span>'}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      ` : '';
+
       summaryHost.innerHTML = `
         <div class="downloads-summary-copy">
           <p class="kicker">Latest release</p>
@@ -601,6 +644,7 @@ async function loadDownloads() {
               View all installers
             </a>
           </div>
+          ${oldVersionsHtml}
         </div>
         <div class="downloads-summary-meta">
           <div class="downloads-meta-card">
@@ -664,6 +708,9 @@ async function loadDownloads() {
     };
     const recommendedKey = osKey === "linux" ? "linuxDeb" : "windowsExe";
     const primaryDownloadUrl = resolvePrimaryDownloadUrl(baseUrl, recommendedKey);
+    const oldVersions = Array.isArray(update?.updates) ? update.updates : [];
+    console.log("API Response updates array:", oldVersions);
+    console.log("Old versions after slice(1):", oldVersions.slice(1));
     renderDownloads(
       version,
       urls,
@@ -672,7 +719,8 @@ async function loadDownloads() {
       "Database update record",
       baseUrl,
       primaryDownloadUrl,
-      resolved.debug
+      resolved.debug,
+      oldVersions
     );
   } catch (_error) {
     const osKey = detectOs();
@@ -698,7 +746,8 @@ async function loadDownloads() {
           deb: "fallback"
         },
         rows: []
-      }
+      },
+      []
     );
   }
 }
