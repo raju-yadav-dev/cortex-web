@@ -530,7 +530,7 @@ async function loadDownloads() {
   const renderDownloads = (version, urls, recommendedKey, releaseNotes, sourceLabel, sourceDownloadUrl, primaryDownloadUrl, debugInfo, oldVersions) => {
     const recommended = installers[recommendedKey] || installers.windowsExe;
     
-    // Group by version and keep only the first record of each version (to avoid duplicates for EXE/MSI)
+    // Group by version and keep only the first record of each version to avoid duplicate installer rows.
     const versionMap = new Map();
     if (Array.isArray(oldVersions)) {
       oldVersions.forEach(v => {
@@ -540,14 +540,16 @@ async function loadDownloads() {
         }
       });
     }
-    
-    // Convert to array and skip the first version (current release)
-    const uniqueVersions = Array.from(versionMap.values());
-    const oldVersionsList = uniqueVersions.slice(1);
-    console.log("All oldVersions from API:", oldVersions);
-    console.log("uniqueVersions after grouping:", uniqueVersions);
-    console.log("oldVersionsList after slice(1):", oldVersionsList);
-    console.log("oldVersionsList.length:", oldVersionsList.length);
+
+    if (version && !versionMap.has(version)) {
+      versionMap.set(version, {
+        version,
+        download_url: primaryDownloadUrl || urls[recommendedKey] || "",
+        release_notes: releaseNotes
+      });
+    }
+
+    const allVersionsList = Array.from(versionMap.values());
     const items = Object.entries(installers)
       .map(([key, item]) => {
         const isRecommended = key === recommendedKey;
@@ -603,19 +605,23 @@ async function loadDownloads() {
     const pickedDeb = String(debugInfo?.picked?.deb || "n/a");
 
     if (summaryHost) {
-      const oldVersionsHtml = oldVersionsList.length ? `
+      const allVersionsHtml = allVersionsList.length ? `
         <div class="old-versions">
-          <h3>Previous versions</h3>
+          <h3>All versions</h3>
           <div class="old-versions-list">
-            ${oldVersionsList.map((v) => {
+            ${allVersionsList.map((v) => {
               const versionNum = escapeHtml(String(v?.version || "").trim());
               const downloadUrl = escapeHtml(String(v?.download_url || "").trim());
               const notes = escapeHtml(String(v?.release_notes || "").trim().split('\n')[0]);
+              const isCurrent = versionNum === escapeHtml(version || "");
               return `
                 <div class="old-version-item">
                   <div class="old-version-info">
-                    <div class="old-version-number">Altarix ${versionNum}</div>
-                    <div class="old-version-date">${notes ? `${notes.substring(0, 50)}...` : 'Previous release'}</div>
+                    <div class="old-version-number">
+                      Altarix ${versionNum}
+                      ${isCurrent ? '<span class="old-version-current">Current</span>' : ''}
+                    </div>
+                    <div class="old-version-date">${notes ? `${notes.substring(0, 50)}...` : 'Release archive'}</div>
                   </div>
                   <div class="old-version-actions">
                     ${downloadUrl ? `<a class="old-version-link" href="${downloadUrl}" download>Download</a>` : '<span class="old-version-link" style="opacity: 0.5;">Unavailable</span>'}
@@ -644,7 +650,7 @@ async function loadDownloads() {
               View all installers
             </a>
           </div>
-          ${oldVersionsHtml}
+          ${allVersionsHtml}
         </div>
         <div class="downloads-summary-meta">
           <div class="downloads-meta-card">
@@ -709,8 +715,6 @@ async function loadDownloads() {
     const recommendedKey = osKey === "linux" ? "linuxDeb" : "windowsExe";
     const primaryDownloadUrl = resolvePrimaryDownloadUrl(baseUrl, recommendedKey);
     const oldVersions = Array.isArray(update?.updates) ? update.updates : [];
-    console.log("API Response updates array:", oldVersions);
-    console.log("Old versions after slice(1):", oldVersions.slice(1));
     renderDownloads(
       version,
       urls,

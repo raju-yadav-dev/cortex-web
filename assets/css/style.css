@@ -1083,6 +1083,22 @@ body[data-theme="light"] .gradient-text-caret {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text-0);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.old-version-current {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(63, 229, 184, 0.36);
+  background: rgba(63, 229, 184, 0.12);
+  color: #8ff7d4;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .old-version-date {
