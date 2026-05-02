@@ -318,8 +318,8 @@ async function loadDownloads() {
   const summaryHost = document.querySelector("[data-download-summary]");
   if (!host) return;
 
-  const fallbackVersion = "v1.5.4";
-  const fallbackReleaseBaseUrl = "http://github.com/raju-yadav-dev/altarix/releases/download/v1.5.4/Altarix-1.5.4.exe";
+  const fallbackVersion = "v1.5.5";
+  const fallbackReleaseBaseUrl = "https://github.com/raju-yadav-dev/altarix/releases/download/v1.5.5/Altarix-Windows-1.5.5.exe";
   const apiUpdateUrl =
     (window.AltarixWeb && typeof window.AltarixWeb.buildAppUrl === "function")
       ? window.AltarixWeb.buildAppUrl("api/update")
@@ -472,17 +472,24 @@ async function loadDownloads() {
   };
 
   const fetchUpdate = async () => {
-    const response = await fetch(apiUpdateUrl, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(apiUpdateUrl, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      throw new Error(`Request failed (${response.status})`);
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
+
+      return response.json();
+    } finally {
+      window.clearTimeout(timeout);
     }
-
-    return response.json();
   };
 
   const normalizeType = (value) => String(value || "").trim().toLowerCase();
@@ -606,7 +613,7 @@ async function loadDownloads() {
 
     if (summaryHost) {
       const allVersionsHtml = allVersionsList.length ? `
-        <div class="old-versions">
+        <div id="allVersions" class="old-versions">
           <h3>All versions</h3>
           <div class="old-versions-list">
             ${allVersionsList.map((v) => {
@@ -648,6 +655,9 @@ async function loadDownloads() {
             </a>
             <a class="btn btn-ghost" href="#downloadSections">
               View all installers
+            </a>
+            <a class="btn btn-ghost" href="#allVersions">
+              List of versions
             </a>
           </div>
           ${allVersionsHtml}
@@ -700,8 +710,41 @@ async function loadDownloads() {
     host.innerHTML = items;
   };
 
-  try {
-    const update = await fetchUpdate();
+  const cacheKey = "altarix-download-update-cache-v1";
+  const fallbackUpdate = {
+    version: fallbackVersion,
+    download_url: fallbackReleaseBaseUrl,
+    release_notes: "Windows EXE, Windows MSI, and Linux DEB installers are available in this release.",
+    updates: [
+      {
+        version: fallbackVersion,
+        download_url: fallbackReleaseBaseUrl,
+        release_notes: "Windows EXE, Windows MSI, and Linux DEB installers are available in this release.",
+        type: "exe"
+      }
+    ]
+  };
+
+  const readCachedUpdate = () => {
+    try {
+      const cached = window.localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : null;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  const writeCachedUpdate = (update) => {
+    try {
+      if (update && update.version) {
+        window.localStorage.setItem(cacheKey, JSON.stringify(update));
+      }
+    } catch (_error) {
+      // Local storage can be unavailable in private browsing or strict browser modes.
+    }
+  };
+
+  const renderUpdatePayload = (update, sourceLabel) => {
     const version = String(update?.version || "").trim() || fallbackVersion;
     const baseUrl = String(update?.download_url || "").trim() || fallbackReleaseBaseUrl;
     const releaseNotes = String(update?.release_notes || "").trim();
@@ -720,39 +763,26 @@ async function loadDownloads() {
       urls,
       recommendedKey,
       releaseNotes,
-      "Database update record",
+      sourceLabel,
       baseUrl,
       primaryDownloadUrl,
       resolved.debug,
       oldVersions
     );
+  };
+
+  const cachedUpdate = readCachedUpdate();
+  renderUpdatePayload(cachedUpdate || fallbackUpdate, cachedUpdate ? "Saved update record" : "Fallback release bucket");
+
+  try {
+    const update = await fetchUpdate();
+    writeCachedUpdate(update);
+    renderUpdatePayload(update, "Database update record");
   } catch (_error) {
-    const osKey = detectOs();
-    const urls = {
-      windowsExe: buildDownloadUrl(fallbackReleaseBaseUrl, "windowsExe"),
-      windowsMsi: buildDownloadUrl(fallbackReleaseBaseUrl, "windowsMsi"),
-      linuxDeb: buildDownloadUrl(fallbackReleaseBaseUrl, "linuxDeb")
-    };
-    const recommendedKey = osKey === "linux" ? "linuxDeb" : "windowsExe";
-    const primaryDownloadUrl = resolvePrimaryDownloadUrl(fallbackReleaseBaseUrl, recommendedKey);
-    renderDownloads(
-      fallbackVersion,
-      urls,
-      recommendedKey,
-      "Windows EXE, Windows MSI, and Linux DEB installers are available in this release.",
-      "Fallback release bucket",
-      fallbackReleaseBaseUrl,
-      primaryDownloadUrl,
-      {
-        picked: {
-          exe: "fallback",
-          msi: "fallback",
-          deb: "fallback"
-        },
-        rows: []
-      },
-      []
-    );
+    if (cachedUpdate) {
+      return;
+    }
+    renderUpdatePayload(fallbackUpdate, "Fallback release bucket");
   }
 }
 

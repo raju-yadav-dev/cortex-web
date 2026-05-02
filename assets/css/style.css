@@ -18,6 +18,10 @@
   --shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
   --bg-glow-1: rgba(30, 45, 102, 0.62);
   --bg-glow-2: rgba(34, 71, 69, 0.58);
+  --scrollbar-track: #1f3441;
+  --scrollbar-rail: #162632;
+  --scrollbar-thumb: #4e7fbc;
+  --scrollbar-thumb-hover: #67a2ff;
   --radius-lg: 22px;
   --radius-md: 14px;
   --radius-sm: 10px;
@@ -34,6 +38,12 @@ html,
 body {
   margin: 0;
   padding: 0;
+}
+
+html {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
 body {
@@ -66,6 +76,121 @@ body[data-theme="light"] {
   --shadow: 0 14px 30px rgba(101, 123, 156, 0.15);
   --bg-glow-1: rgba(158, 186, 248, 0.46);
   --bg-glow-2: rgba(170, 222, 211, 0.52);
+  --scrollbar-track: #dbe8f1;
+  --scrollbar-rail: #c8d9e5;
+  --scrollbar-thumb: #4f83c2;
+  --scrollbar-thumb-hover: #246fc4;
+}
+
+* {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 18px;
+  height: 18px;
+}
+
+*::-webkit-scrollbar-track {
+  border-left: 1px solid rgba(91, 157, 171, 0.2);
+  border-right: 1px solid rgba(43, 245, 199, 0.18);
+  background:
+    linear-gradient(90deg, rgba(4, 13, 20, 0.28), transparent 34%, rgba(43, 245, 199, 0.13) 100%),
+    var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-button {
+  width: 18px;
+  height: 18px;
+  background:
+    linear-gradient(135deg, transparent 44%, rgba(81, 137, 184, 0.75) 45% 55%, transparent 56%)
+    center / 8px 8px no-repeat,
+    var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 68px;
+  min-width: 68px;
+  border: 6px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--scrollbar-thumb-hover), var(--scrollbar-thumb)) padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #75b4f7, #5b91d4) padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 20px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background:
+    linear-gradient(90deg, rgba(5, 8, 15, 0.6), transparent 36%, rgba(43, 245, 199, 0.16)),
+    var(--scrollbar-track);
+}
+
+html::-webkit-scrollbar-button,
+body::-webkit-scrollbar-button {
+  width: 20px;
+  height: 20px;
+  background-color: var(--scrollbar-track);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 8px 8px;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  min-height: 92px;
+  border: 7px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5f93d0, #4d7db9) padding-box;
+  box-shadow: inset 0 0 0 1px rgba(130, 184, 236, 0.24);
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #75b4f7, #5b91d4) padding-box;
+}
+
+html::-webkit-scrollbar-button:single-button:vertical:decrement,
+body::-webkit-scrollbar-button:single-button:vertical:decrement,
+*::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #4f83c2 50%),
+    linear-gradient(135deg, #4f83c2 50%, transparent 50%);
+  background-position: calc(50% - 4px) 50%, calc(50% + 4px) 50%;
+  background-size: 8px 8px, 8px 8px;
+  background-repeat: no-repeat;
+}
+
+html::-webkit-scrollbar-button:single-button:vertical:increment,
+body::-webkit-scrollbar-button:single-button:vertical:increment,
+*::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image:
+    linear-gradient(135deg, transparent 50%, #4f83c2 50%),
+    linear-gradient(45deg, #4f83c2 50%, transparent 50%);
+  background-position: calc(50% - 4px) 50%, calc(50% + 4px) 50%;
+  background-size: 8px 8px, 8px 8px;
+  background-repeat: no-repeat;
+}
+
+.downloads-summary-meta,
+.downloads-meta-notes,
+.downloads-table-wrap,
+.table-scroll,
+.debug-log,
+.form-stack textarea {
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 body[data-theme="light"] .site-nav a:hover {
@@ -970,6 +1095,30 @@ body[data-theme="light"] .gradient-text-caret {
   gap: 10px;
   max-height: 400px;
   overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.downloads-summary-meta::-webkit-scrollbar,
+.downloads-meta-notes::-webkit-scrollbar {
+  width: 10px;
+}
+
+.downloads-summary-meta::-webkit-scrollbar-track,
+.downloads-meta-notes::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--scrollbar-track);
+}
+
+.downloads-summary-meta::-webkit-scrollbar-thumb,
+.downloads-meta-notes::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(43, 245, 199, 0.86), rgba(103, 162, 255, 0.54))
+    border-box;
+  background-clip: padding-box;
 }
 
 .downloads-meta-card {
@@ -997,6 +1146,7 @@ body[data-theme="light"] .gradient-text-caret {
 .downloads-meta-notes {
   max-height: 190px;
   overflow: auto;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .downloads-debug {
@@ -1042,6 +1192,7 @@ body[data-theme="light"] .gradient-text-caret {
   margin-top: 40px;
   padding-top: 32px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  scroll-margin-top: 110px;
 }
 
 .old-versions h3 {
